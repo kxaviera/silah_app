@@ -13,7 +13,11 @@ npm install
 Create a `.env` file:
 
 ```
+# For development
 VITE_API_URL=http://localhost:5000/api
+
+# For production
+VITE_API_URL=https://api.rewardo.fun/api
 ```
 
 For production (e.g. VPS at 88.222.241.43):

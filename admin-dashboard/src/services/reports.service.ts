@@ -16,6 +16,9 @@ export const reportsService = {
   },
   async getReport(id: string) { const { data } = await adminApi.get(`/reports/${id}`); return data; },
   async reviewReport(id: string, notes: string) { const { data } = await adminApi.put(`/reports/${id}/review`, { notes }); return data; },
-  async resolveReport(id: string, action: string) { const { data } = await adminApi.put(`/reports/${id}/resolve`, { action }); return data; },
+  async resolveReport(id: string, action: string, notes?: string) { 
+    const { data } = await adminApi.put(`/reports/${id}/resolve`, { action, notes }); 
+    return data; 
+  },
   async deleteReport(id: string) { const { data } = await adminApi.delete(`/reports/${id}`); return data; },
 };

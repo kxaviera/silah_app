@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-// Admin base: e.g. http://localhost:5000/api/admin or http://88.222.241.43/api/admin
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.rewardo.fun/api';
+// Admin base: e.g. https://api.rewardo.fun/api/admin
 const ADMIN_BASE = API_URL.replace(/\/api\/?$/, '') + '/api/admin';
 
 export const api = axios.create({

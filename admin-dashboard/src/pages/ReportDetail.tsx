@@ -12,6 +12,7 @@ export function ReportDetail() {
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState('');
   const [action, setAction] = useState('');
+  const [resolveNotes, setResolveNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,7 +30,14 @@ export function ReportDetail() {
   const handleResolve = async () => {
     if (!id || !action) return;
     setSubmitting(true);
-    try { await reportsService.resolveReport(id, action); setReport((r: any) => ({ ...r, status: 'resolved' })); } catch (e) { alert((e as Error)?.message || 'Failed'); }
+    try { 
+      await reportsService.resolveReport(id, action, resolveNotes); 
+      setReport((r: any) => ({ ...r, status: 'resolved' })); 
+      setAction('');
+      setResolveNotes('');
+    } catch (e) { 
+      alert((e as Error)?.message || 'Failed'); 
+    }
     setSubmitting(false);
   };
 
@@ -140,30 +148,37 @@ export function ReportDetail() {
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
                 Resolve Report
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                <TextField 
-                  fullWidth
-                  size="medium"
-                  label="Resolution action" 
-                  value={action} 
-                  onChange={(e) => setAction(e.target.value)} 
-                  placeholder="e.g. Warning sent, User blocked, Content removed"
-                  sx={{ flex: 1, minWidth: 300 }}
-                />
-                <Button 
-                  variant="contained" 
-                  startIcon={<CheckCircleIcon />} 
-                  onClick={handleResolve} 
-                  disabled={submitting || !action}
-                  sx={{ 
-                    bgcolor: '#28BC79', 
-                    '&:hover': { bgcolor: '#1E8A5A' },
-                    height: '56px',
-                  }}
-                >
-                  {submitting ? 'Processing...' : 'Resolve'}
-                </Button>
-              </Box>
+              <TextField 
+                fullWidth
+                size="medium"
+                label="Resolution action" 
+                value={action} 
+                onChange={(e) => setAction(e.target.value)} 
+                placeholder="e.g. Warning sent, User blocked, Content removed"
+                sx={{ mb: 2 }}
+              />
+              <TextField 
+                fullWidth 
+                multiline 
+                rows={3}
+                label="Resolution notes (optional)" 
+                value={resolveNotes} 
+                onChange={(e) => setResolveNotes(e.target.value)} 
+                placeholder="Add any additional notes about the resolution..."
+                sx={{ mb: 2 }}
+              />
+              <Button 
+                variant="contained" 
+                startIcon={<CheckCircleIcon />} 
+                onClick={handleResolve} 
+                disabled={submitting || !action}
+                sx={{ 
+                  bgcolor: '#28BC79', 
+                  '&:hover': { bgcolor: '#1E8A5A' },
+                }}
+              >
+                {submitting ? 'Processing...' : 'Resolve'}
+              </Button>
             </Box>
           )}
         </CardContent>

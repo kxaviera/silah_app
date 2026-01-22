@@ -10,9 +10,9 @@ class AppConfig {
   static String get baseUrl {
     switch (environment) {
       case 'production':
-        return 'http://88.222.241.43/api'; // VPS Production URL
+        return 'https://api.rewardo.fun/api'; // Production API URL
       case 'staging':
-        return 'https://staging-api.silah.com/api'; // TODO: Update with actual staging URL
+        return 'https://staging-api.rewardo.fun/api'; // Staging API URL
       case 'development':
       default:
         return 'http://localhost:5000/api'; // Development URL
