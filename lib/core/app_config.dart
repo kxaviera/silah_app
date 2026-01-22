@@ -10,7 +10,7 @@ class AppConfig {
   static String get baseUrl {
     switch (environment) {
       case 'production':
-        return 'https://api.silah.com/api'; // TODO: Update with actual production URL
+        return 'http://88.222.241.43/api'; // VPS Production URL
       case 'staging':
         return 'https://staging-api.silah.com/api'; // TODO: Update with actual staging URL
       case 'development':
