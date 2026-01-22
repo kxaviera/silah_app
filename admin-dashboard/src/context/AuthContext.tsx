@@ -23,7 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await authService.getMe();
       setAdmin(res?.admin || res?.data || null);
-    } catch { setAdmin(null); }
+    } catch {
+      // If backend fails, check for test mode data
+      const adminData = localStorage.getItem('admin_data');
+      if (adminData) {
+        try {
+          setAdmin(JSON.parse(adminData));
+        } catch {
+          setAdmin(null);
+        }
+      } else {
+        setAdmin(null);
+      }
+    }
     setLoading(false);
   };
 

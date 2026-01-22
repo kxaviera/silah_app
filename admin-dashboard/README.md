@@ -28,6 +28,12 @@ VITE_API_URL=http://88.222.241.43/api
 npm run dev
 ```
 
+## Quick Test Login
+
+For testing without backend:
+- Click **"Quick Login (Test Mode)"** button on login page
+- Or use: `admin@test.com` / `test123`
+
 ## Build
 
 ```bash

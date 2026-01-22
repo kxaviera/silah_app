@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Chip, TablePagination, Button, Select, MenuItem, FormControl, InputLabel,
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Chip, TablePagination, Button, Select, MenuItem, FormControl, InputLabel, Card, CircularProgress,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { reportsService } from '../services/reports.service';
@@ -33,41 +33,114 @@ export function Reports() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight="bold" gutterBottom>Reports</Typography>
-      <Box sx={{ mb: 2 }}>
-        <FormControl size="small" sx={{ minWidth: 180 }}>
-          <InputLabel>Status</InputLabel>
-          <Select value={status} label="Status" onChange={(e) => setStatus(e.target.value)}>
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="pending">Pending</MenuItem>
-            <MenuItem value="reviewed">Reviewed</MenuItem>
-            <MenuItem value="resolved">Resolved</MenuItem>
-          </Select>
-        </FormControl>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: '#1e293b', mb: 0.5 }}>
+          Reports
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Review and manage user reports
+        </Typography>
       </Box>
-      <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
-        <Table size="small">
-          <TableHead><TableRow sx={{ bgcolor: '#f5f5f5' }}>
-            <TableCell>Reporter</TableCell><TableCell>Reported User</TableCell><TableCell>Reason</TableCell><TableCell>Status</TableCell><TableCell>Date</TableCell><TableCell align="right">Actions</TableCell>
-          </TableRow></TableHead>
-          <TableBody>
-            {loading ? <TableRow><TableCell colSpan={6} align="center">Loading...</TableCell></TableRow> :
-              reports.map((r) => (
-                <TableRow key={r._id} hover>
-                  <TableCell>{r.reporter?.fullName || r.reporterId}</TableCell>
-                  <TableCell>{r.reportedUser?.fullName || r.reportedUserId}</TableCell>
-                  <TableCell>{r.reason}</TableCell>
-                  <TableCell><Chip label={r.status} size="small" color={r.status === 'pending' ? 'warning' : r.status === 'resolved' ? 'success' : 'default'} /></TableCell>
-                  <TableCell>{new Date(r.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell align="right">
-                    <Button size="small" startIcon={<VisibilityIcon />} onClick={() => navigate(`/reports/${r._id}`)}>View</Button>
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', border: '1px solid #e2e8f0', mb: 3 }}>
+        <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0' }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
+            <InputLabel>Status</InputLabel>
+            <Select 
+              value={status} 
+              label="Status" 
+              onChange={(e) => setStatus(e.target.value)}
+              sx={{ bgcolor: '#f8fafc' }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="reviewed">Reviewed</MenuItem>
+              <MenuItem value="resolved">Resolved</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                <TableCell sx={{ fontWeight: 600, color: '#475569', py: 2 }}>Reporter</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Reported User</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Reason</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>Date</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: '#475569' }}>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
-              ))}
-          </TableBody>
-        </Table>
-        {data && <TablePagination component="div" count={data.total} page={page} onPageChange={(_, p) => setPage(p)} rowsPerPage={rowsPerPage} onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }} />}
-      </TableContainer>
+              ) : reports.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#64748b' }}>
+                    No reports found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                reports.map((r) => (
+                  <TableRow 
+                    key={r._id} 
+                    hover
+                    sx={{ 
+                      '&:hover': { bgcolor: '#f8fafc' },
+                      '&:last-child td': { borderBottom: 0 }
+                    }}
+                  >
+                    <TableCell sx={{ py: 2, fontWeight: 500 }}>{r.reporter?.fullName || r.reporterId}</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>{r.reportedUser?.fullName || r.reportedUserId}</TableCell>
+                    <TableCell sx={{ color: '#64748b' }}>{r.reason}</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={r.status} 
+                        size="small" 
+                        sx={{ 
+                          bgcolor: r.status === 'pending' ? '#fef3c7' : r.status === 'resolved' ? '#d1fae5' : '#e0e7ff',
+                          color: r.status === 'pending' ? '#92400e' : r.status === 'resolved' ? '#065f46' : '#3730a3',
+                          fontWeight: 500,
+                          textTransform: 'capitalize',
+                        }} 
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: '#64748b' }}>{new Date(r.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell align="right">
+                      <Button 
+                        size="small" 
+                        startIcon={<VisibilityIcon />} 
+                        onClick={() => navigate(`/reports/${r._id}`)}
+                        sx={{ 
+                          color: '#28BC79',
+                          '&:hover': { bgcolor: 'rgba(40, 188, 121, 0.1)' }
+                        }}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {data && (
+          <Box sx={{ borderTop: '1px solid #e2e8f0' }}>
+            <TablePagination 
+              component="div" 
+              count={data.total} 
+              page={page} 
+              onPageChange={(_, p) => setPage(p)} 
+              rowsPerPage={rowsPerPage} 
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+            />
+          </Box>
+        )}
+      </Card>
     </Box>
   );
 }

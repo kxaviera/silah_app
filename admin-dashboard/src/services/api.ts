@@ -24,8 +24,12 @@ adminApi.interceptors.response.use(
   (r) => r,
   (e) => {
     if (e.response?.status === 401) {
-      localStorage.removeItem('admin_token');
-      window.location.href = '/login';
+      // Don't redirect if in test mode (has admin_data)
+      const adminData = localStorage.getItem('admin_data');
+      if (!adminData) {
+        localStorage.removeItem('admin_token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(e);
   }
