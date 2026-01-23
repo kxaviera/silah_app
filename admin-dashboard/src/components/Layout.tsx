@@ -10,6 +10,7 @@ import FlagIcon from '@mui/icons-material/Flag';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,7 @@ const menu = [
   { path: '/users', label: 'Users', icon: <PeopleIcon /> },
   { path: '/reports', label: 'Reports', icon: <FlagIcon /> },
   { path: '/transactions', label: 'Transactions', icon: <ReceiptIcon /> },
+  { path: '/promo-codes', label: 'Promo Codes', icon: <LocalOfferIcon /> },
   { path: '/analytics', label: 'Analytics', icon: <BarChartIcon /> },
   { path: '/settings', label: 'Settings', icon: <SettingsIcon /> },
 ];

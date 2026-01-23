@@ -13,6 +13,8 @@ import { Transactions } from './pages/Transactions';
 import { TransactionDetail } from './pages/TransactionDetail';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
+import { PromoCodes } from './pages/PromoCodes';
+import { PromoCodeDetail } from './pages/PromoCodeDetail';
 
 const theme = createTheme({
   palette: {
@@ -150,6 +152,10 @@ function AppRoutes() {
         <Route path="transactions/:id" element={<TransactionDetail />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="promo-codes" element={<PromoCodes />} />
+        <Route path="promo-codes/new" element={<PromoCodeDetail />} />
+        <Route path="promo-codes/:id" element={<PromoCodeDetail />} />
+        <Route path="promo-codes/:id/edit" element={<PromoCodeDetail />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
