@@ -37,41 +37,69 @@ class _SplashScreenState extends State<SplashScreen> {
 
       if (token != null && token.isNotEmpty) {
         // Token exists - verify it's still valid
-        final authApi = AuthApi();
-        final userResponse = await authApi.getMe();
+        try {
+          final authApi = AuthApi();
+          final userResponse = await authApi.getMe();
 
-        if (userResponse['success'] == true && mounted) {
-          // Token is valid - user is logged in
-          final user = userResponse['user'] as Map<String, dynamic>;
-          final role = user['role'] as String? ?? 'groom';
-          final isProfileComplete = user['isProfileComplete'] as bool? ?? false;
-          final tutorialCompleted = prefs.getBool('safety_tutorial_completed') ?? false;
+          if (userResponse['success'] == true && mounted) {
+            // Token is valid - user is logged in
+            final user = userResponse['user'] as Map<String, dynamic>;
+            final role = user['role'] as String? ?? 'groom';
+            final isProfileComplete = user['isProfileComplete'] as bool? ?? false;
+            final tutorialCompleted = prefs.getBool('safety_tutorial_completed') ?? false;
 
-          // Check if safety tutorial needs to be shown
-          if (!tutorialCompleted && mounted) {
-            final tutorialResult = await Navigator.pushNamed(
-              context,
-              SafetyTutorialScreen.routeName,
-            );
+            // Only navigate to app if profile is complete
+            // If profile is incomplete, user should complete it through normal flow
+            if (isProfileComplete) {
+              // Check if safety tutorial needs to be shown
+              if (!tutorialCompleted && mounted) {
+                final tutorialResult = await Navigator.pushNamed(
+                  context,
+                  SafetyTutorialScreen.routeName,
+                );
 
-            if (mounted && tutorialResult == true) {
-              _navigateToApp(role, isProfileComplete);
-            } else if (mounted) {
-              // Tutorial cancelled or failed - still navigate
-              _navigateToApp(role, isProfileComplete);
+                if (mounted && tutorialResult == true) {
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppShell.routeName,
+                    arguments: role,
+                  );
+                } else if (mounted) {
+                  // Tutorial cancelled or failed - still navigate to app
+                  Navigator.pushReplacementNamed(
+                    context,
+                    AppShell.routeName,
+                    arguments: role,
+                  );
+                }
+              } else {
+                // Navigate directly to app
+                Navigator.pushReplacementNamed(
+                  context,
+                  AppShell.routeName,
+                  arguments: role,
+                );
+              }
+              return;
+            } else {
+              // Profile incomplete - clear token and go to login
+              // User needs to login again and complete profile through normal flow
+              print('Profile incomplete, clearing token and going to login');
+              await ApiClient.instance.clearToken();
             }
           } else {
-            // Navigate directly to app
-            _navigateToApp(role, isProfileComplete);
+            // Token is invalid or expired - clear it and go to login
+            print('Token invalid or expired, clearing and going to login');
+            await ApiClient.instance.clearToken();
           }
-          return;
-        } else {
-          // Token is invalid - clear it and go to login
+        } catch (e) {
+          // Error validating token - clear it and go to login
+          print('Error validating token: $e');
           await ApiClient.instance.clearToken();
         }
       }
 
-      // No token or invalid token - navigate to login
+      // No token or invalid token - navigate to login screen
       if (mounted) {
         Navigator.pushReplacementNamed(context, LoginScreen.routeName);
       }
@@ -86,6 +114,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   void _navigateToApp(String role, bool isProfileComplete) {
+    // This method is no longer needed but kept for compatibility
+    // Navigation is now handled directly in _checkLoginStatus
     if (!mounted) return;
 
     if (isProfileComplete) {
@@ -95,11 +125,8 @@ class _SplashScreenState extends State<SplashScreen> {
         arguments: role,
       );
     } else {
-      Navigator.pushReplacementNamed(
-        context,
-        CompleteProfileScreen.routeName,
-        arguments: role,
-      );
+      // Should not reach here - incomplete profiles go to login
+      Navigator.pushReplacementNamed(context, LoginScreen.routeName);
     }
   }
 
