@@ -29,7 +29,7 @@ import settingsRoutes from './routes/settings.routes';
 import paymentRoutes from './routes/payment.routes';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const server = http.createServer(app);
