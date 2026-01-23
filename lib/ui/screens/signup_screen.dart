@@ -16,7 +16,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _authApi = AuthApi();
   
-  String? _role; // 'bride' or 'groom'
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -197,7 +196,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildRoleSelection(theme),
               const SizedBox(height: 32),
               if (_errorMessage != null)
                 Container(
@@ -296,14 +294,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    // Validate role
-    if (_role == null) {
-      setState(() {
-        _errorMessage = 'Please select if you are a Bride or Groom';
-      });
-      return;
-    }
-
     // Set loading state
     setState(() {
       _isLoading = true;
@@ -315,12 +305,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
       print('🌍 Environment: ${AppConfig.environment}');
       print('🔗 API URL: ${AppConfig.baseUrl}');
       
-      // Call register API (only basic info - rest in complete profile)
+      // Call register API (only basic info - role will be set in complete profile)
       final response = await _authApi.register(
         fullName: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        role: _role!,
+        // Role not required here - will be set in complete profile
       );
 
       if (response['success'] == true) {
@@ -329,7 +319,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Navigator.pushReplacementNamed(
             context,
             CompleteProfileScreen.routeName,
-            arguments: _role,
+            // No role argument - user will select in complete profile
           );
         }
       } else {
@@ -355,69 +345,4 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     super.dispose();
   }
-
-  Widget _buildRoleSelection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'I am',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: SegmentedButton<String>(
-            segments: const [
-              ButtonSegment<String>(
-                value: 'bride',
-                label: Text('Bride'),
-                icon: Icon(Icons.person_outline),
-              ),
-              ButtonSegment<String>(
-                value: 'groom',
-                label: Text('Groom'),
-                icon: Icon(Icons.person_outline),
-              ),
-            ],
-            selected: _role != null ? {_role!} : <String>{},
-            onSelectionChanged: (Set<String> newSelection) {
-              setState(() {
-                _role = newSelection.firstOrNull;
-              });
-            },
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return theme.colorScheme.primaryContainer;
-                }
-                return Colors.transparent;
-              }),
-              foregroundColor: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return theme.colorScheme.primary;
-                }
-                return Colors.black87;
-              }),
-              side: WidgetStateProperty.resolveWith((states) {
-                if (states.contains(WidgetState.selected)) {
-                  return BorderSide(color: theme.colorScheme.primary, width: 2);
-                }
-                return BorderSide(color: Colors.grey.shade300);
-              }),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
 }

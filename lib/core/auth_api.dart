@@ -9,7 +9,7 @@ class AuthApi {
     required String fullName,
     required String email,
     required String password,
-    required String role,
+    String? role, // Optional - will be set in complete profile
     String? mobile,
   }) async {
     try {
@@ -21,7 +21,7 @@ class AuthApi {
         'fullName': fullName,
         'email': email,
         'password': password,
-        'role': role,
+        if (role != null) 'role': role, // Only send if provided
         if (mobile != null) 'mobile': mobile,
       });
 

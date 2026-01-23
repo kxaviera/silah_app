@@ -50,6 +50,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   String? _sistersMaritalStatus;
   
   // Dropdown values
+  String? _selectedRole; // 'bride' or 'groom' - moved from signup
   String? _selectedGender;
   String? _selectedCountry;
   String? _selectedLivingCountry;
@@ -311,6 +312,10 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   ),
                 ),
               ],
+              const SizedBox(height: 32),
+              _buildSectionTitle('I am'),
+              const SizedBox(height: 16),
+              _buildRoleSelection(theme),
               const SizedBox(height: 32),
               _buildSectionTitle('Profile management'),
               const SizedBox(height: 16),
@@ -913,6 +918,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     }
 
     // Validate required dropdowns
+    if (_selectedRole == null) {
+      setState(() {
+        _errorMessage = 'Please select if you are a Bride or Groom';
+      });
+      return;
+    }
+
     if (_selectedGender == null) {
       setState(() {
         _errorMessage = 'Please select gender';
@@ -1028,7 +1040,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           Navigator.pushNamed(
             context,
             PaymentPostProfileScreen.routeName,
-            arguments: role,
+            arguments: _selectedRole ?? 'groom',
           );
         }
       } else {

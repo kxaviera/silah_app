@@ -42,6 +42,10 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
   try {
     const userId = req.user._id;
     const {
+      role, // Role can be updated in complete profile
+      name,
+      dateOfBirth,
+      gender,
       height,
       complexion,
       livingCountry,
@@ -55,6 +59,17 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
       partnerPreferences,
       hideMobile,
       hidePhotos,
+      profileHandledBy,
+      // Family details
+      fatherName,
+      fatherOccupation,
+      motherName,
+      motherOccupation,
+      brothersCount,
+      brothersMaritalStatus,
+      sistersCount,
+      sistersMaritalStatus,
+      profilePhoto,
     } = req.body;
 
     const updateData: any = {
@@ -63,6 +78,30 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
       // Admin will verify later
       isVerified: false,
     };
+
+    // Update role if provided
+    if (role && ['bride', 'groom'].includes(role)) {
+      updateData.role = role;
+    }
+
+    // Update name if provided
+    if (name) updateData.fullName = name;
+
+    // Update date of birth and calculate age
+    if (dateOfBirth) {
+      updateData.dateOfBirth = new Date(dateOfBirth);
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      updateData.age = age;
+    }
+
+    // Update gender if provided
+    if (gender) updateData.gender = gender;
 
     if (height !== undefined) updateData.height = height;
     if (complexion) updateData.complexion = complexion;
@@ -77,6 +116,18 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
     if (partnerPreferences) updateData.partnerPreferences = partnerPreferences;
     if (hideMobile !== undefined) updateData.hideMobile = hideMobile;
     if (hidePhotos !== undefined) updateData.hidePhotos = hidePhotos;
+    if (profileHandledBy) updateData.profileHandledBy = profileHandledBy;
+    if (profilePhoto) updateData.profilePhoto = profilePhoto;
+
+    // Family details
+    if (fatherName) updateData.fatherName = fatherName;
+    if (fatherOccupation) updateData.fatherOccupation = fatherOccupation;
+    if (motherName) updateData.motherName = motherName;
+    if (motherOccupation) updateData.motherOccupation = motherOccupation;
+    if (brothersCount) updateData.brothersCount = brothersCount;
+    if (brothersMaritalStatus) updateData.brothersMaritalStatus = brothersMaritalStatus;
+    if (sistersCount) updateData.sistersCount = sistersCount;
+    if (sistersMaritalStatus) updateData.sistersMaritalStatus = sistersMaritalStatus;
 
     const user = await User.findByIdAndUpdate(
       userId,

@@ -7,16 +7,16 @@ import { AuthRequest } from '../middleware/auth.middleware';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Register (basic signup - only name, email, password, role)
+// Register (basic signup - only name, email, password, role optional - will be set in complete profile)
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { fullName, email, password, role, mobile } = req.body;
 
-    // Validation - only basic fields required for signup
-    if (!fullName || !email || !password || !role) {
+    // Validation - role is now optional (will be set in complete profile)
+    if (!fullName || !email || !password) {
       res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: fullName, email, password, and role.',
+        message: 'Please provide all required fields: fullName, email, and password.',
       });
       return;
     }
@@ -43,12 +43,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Create user with basic info only (rest will be added in complete profile)
+    // Create user with basic info only (role will be set in complete profile if not provided)
     const user = await User.create({
       fullName,
       email: email.toLowerCase(),
       password,
-      role,
+      role: role || 'groom', // Default to 'groom' if not provided, will be updated in complete profile
       mobile: mobile || undefined,
       isProfileComplete: false,
     });
