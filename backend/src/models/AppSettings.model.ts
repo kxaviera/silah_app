@@ -64,10 +64,10 @@ const BoostPricingSchema = new Schema(
 const CompanyDetailsSchema = new Schema(
   {
     name: { type: String, required: true },
-    gstin: { type: String, required: true },
+    gstin: { type: String, required: false, default: '' },
     email: { type: String, required: true },
     phone: { type: String, required: true },
-    address: { type: String, required: true },
+    address: { type: String, required: false, default: '' },
   },
   { _id: false }
 );
