@@ -14,8 +14,10 @@ export interface User {
   dateOfBirth?: string;
   age?: number;
   gender?: string;
+  currentStatus?: string;
   height?: number;
   complexion?: string;
+  physicalStatus?: string;
   country?: string;
   livingCountry?: string;
   state?: string;
@@ -30,6 +32,16 @@ export interface User {
   profilePhoto?: string;
   hideMobile?: boolean;
   hidePhotos?: boolean;
+  profileHandledBy?: string;
+  // Family details
+  fatherName?: string;
+  fatherOccupation?: string;
+  motherName?: string;
+  motherOccupation?: string;
+  brothersCount?: string;
+  brothersMaritalStatus?: string; // Number of married brothers
+  sistersCount?: string;
+  sistersMaritalStatus?: string; // Number of married sisters
   isProfileComplete?: boolean;
   verifiedAt?: string;
   verificationNotes?: string;

@@ -358,12 +358,24 @@ export function UserDetail() {
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.gender || '-'}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Current Status</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.currentStatus || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">Height</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.height ? `${user.height} cm` : '-'}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">Complexion</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.complexion || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Physical Status</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.physicalStatus || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Profile Handled By</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.profileHandledBy || '-'}</Typography>
                 </Grid>
               </Grid>
             </Grid>

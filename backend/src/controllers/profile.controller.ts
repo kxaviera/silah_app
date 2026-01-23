@@ -42,12 +42,14 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
   try {
     const userId = req.user._id;
     const {
-      role, // Role can be updated in complete profile
-      name,
+      role, // Role is REQUIRED in complete profile
+      name, // Full name is REQUIRED in complete profile
       dateOfBirth,
       gender,
+      currentStatus,
       height,
       complexion,
+      physicalStatus,
       livingCountry,
       state,
       city,
@@ -66,22 +68,27 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
       motherName,
       motherOccupation,
       brothersCount,
-      brothersMaritalStatus,
+      brothersMaritalStatus, // Number of married brothers
       sistersCount,
-      sistersMaritalStatus,
+      sistersMaritalStatus, // Number of married sisters
       profilePhoto,
     } = req.body;
 
-    const updateData: any = {
-      isProfileComplete: true,
-      // Set verification status to false (Under Review) when profile is completed
-      // Admin will verify later
-      isVerified: false,
-    };
+    // Validate required fields
+    if (!role || !['bride', 'groom'].includes(role)) {
+      res.status(400).json({
+        success: false,
+        message: 'Role is required and must be either "bride" or "groom".',
+      });
+      return;
+    }
 
-    // Update role if provided
-    if (role && ['bride', 'groom'].includes(role)) {
-      updateData.role = role;
+    if (!name || name.trim().length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Full name is required.',
+      });
+      return;
     }
 
     const updateData: any = {
@@ -90,7 +97,7 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
       // Admin will verify later
       isVerified: false,
       role, // Role is REQUIRED
-      fullName: name, // Full name is REQUIRED
+      fullName: name.trim(), // Full name is REQUIRED
     };
 
     // Update date of birth and calculate age
