@@ -50,8 +50,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   String? _sistersMaritalStatus;
   
   // Dropdown values
-  String? _selectedRole; // 'bride' or 'groom' - moved from signup
+  String? _selectedRole; // 'bride' or 'groom' - moved from signup (REQUIRED)
   String? _selectedGender;
+  String? _selectedCurrentStatus; // Single, 2nd Marriage, Widow, Widower, Divorced
   String? _selectedCountry;
   String? _selectedLivingCountry;
   String? _selectedState;
@@ -59,6 +60,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   String? _selectedReligion;
   String? _selectedCaste;
   String? _selectedComplexion;
+  String? _selectedPhysicalStatus; // Healthy, Fit, Slim, Handicap, Other
   String? _selectedEducation;
   String? _selectedProfession;
   String? _profileHandledBy; // 'self', 'father', 'mother', 'brother', 'sister'
@@ -363,6 +365,22 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              _buildDropdown<String>(
+                label: 'Current status',
+                icon: Icons.person_outline,
+                value: _selectedCurrentStatus,
+                items: AppData.currentStatus,
+                displayText: (value) => value,
+                hint: 'Select current status',
+                onChanged: (value) => setState(() => _selectedCurrentStatus = value),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select your current status';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Date of birth',
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -566,6 +584,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 hint: 'Select complexion',
                 onChanged: (value) => setState(() => _selectedComplexion = value),
               ),
+              const SizedBox(height: 16),
+              _buildDropdown<String>(
+                label: 'Physical status',
+                icon: Icons.accessibility_outlined,
+                value: _selectedPhysicalStatus,
+                items: AppData.physicalStatus,
+                displayText: (value) => value,
+                hint: 'Select physical status',
+                onChanged: (value) => setState(() => _selectedPhysicalStatus = value),
+              ),
               const SizedBox(height: 32),
               _buildSectionTitle('Education & profession'),
               const SizedBox(height: 16),
@@ -665,19 +693,19 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       value: _brothersCount,
                       items: AppData.siblingCounts,
                       displayText: (value) => value,
-                      hint: 'Select count',
+                      hint: '0',
                       onChanged: (value) => setState(() => _brothersCount = value),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDropdown<String>(
-                      label: 'Brothers status (optional)',
+                      label: 'Brothers married (optional)',
                       icon: Icons.family_restroom_outlined,
                       value: _brothersMaritalStatus,
-                      items: AppData.maritalStatus,
+                      items: AppData.siblingMarriedCounts,
                       displayText: (value) => value,
-                      hint: 'Select status',
+                      hint: '0',
                       onChanged: (value) => setState(() => _brothersMaritalStatus = value),
                     ),
                   ),
@@ -693,19 +721,19 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       value: _sistersCount,
                       items: AppData.siblingCounts,
                       displayText: (value) => value,
-                      hint: 'Select count',
+                      hint: '0',
                       onChanged: (value) => setState(() => _sistersCount = value),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildDropdown<String>(
-                      label: 'Sisters status (optional)',
+                      label: 'Sisters married (optional)',
                       icon: Icons.family_restroom_outlined,
                       value: _sistersMaritalStatus,
-                      items: AppData.maritalStatus,
+                      items: AppData.siblingMarriedCounts,
                       displayText: (value) => value,
-                      hint: 'Select status',
+                      hint: '0',
                       onChanged: (value) => setState(() => _sistersMaritalStatus = value),
                     ),
                   ),
@@ -762,7 +790,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : () => _handleSaveAndContinue(role),
+                  onPressed: _isLoading ? null : () => _handleSaveAndContinue(),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -961,7 +989,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     }
   }
 
-  Future<void> _handleSaveAndContinue(String role) async {
+  Future<void> _handleSaveAndContinue() async {
     // Clear previous error
     setState(() {
       _errorMessage = null;
@@ -1049,14 +1077,17 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
       // Prepare profile data
       final profileData = {
+        'role': _selectedRole, // Role selected in complete profile (REQUIRED)
         'name': _nameController.text.trim(),
         'dateOfBirth': dateOfBirth.toIso8601String(),
         'gender': _selectedGender,
+        'currentStatus': _selectedCurrentStatus,
         'profileHandledBy': _profileHandledBy ?? 'self',
         'height': _heightController.text.trim().isNotEmpty
             ? int.tryParse(_heightController.text.trim())
             : null,
         'complexion': _selectedComplexion,
+        'physicalStatus': _selectedPhysicalStatus,
         'country': _selectedCountry,
         'livingCountry': _selectedLivingCountry,
         'state': _selectedState,
@@ -1078,9 +1109,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         'motherName': _motherNameController.text.trim().isNotEmpty ? _motherNameController.text.trim() : null,
         'motherOccupation': _motherOccupation,
         'brothersCount': _brothersCount,
-        'brothersMaritalStatus': _brothersMaritalStatus,
+        'brothersMaritalStatus': _brothersMaritalStatus, // Now stores number of married brothers
         'sistersCount': _sistersCount,
-        'sistersMaritalStatus': _sistersMaritalStatus,
+        'sistersMaritalStatus': _sistersMaritalStatus, // Now stores number of married sisters
         if (_profilePhotoUrl != null) 'profilePhoto': _profilePhotoUrl,
       };
 

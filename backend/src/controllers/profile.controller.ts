@@ -84,8 +84,14 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
       updateData.role = role;
     }
 
-    // Update name if provided
-    if (name) updateData.fullName = name;
+    const updateData: any = {
+      isProfileComplete: true,
+      // Set verification status to false (Under Review) when profile is completed
+      // Admin will verify later
+      isVerified: false,
+      role, // Role is REQUIRED
+      fullName: name, // Full name is REQUIRED
+    };
 
     // Update date of birth and calculate age
     if (dateOfBirth) {
@@ -103,8 +109,12 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
     // Update gender if provided
     if (gender) updateData.gender = gender;
 
+    // Update current status if provided
+    if (currentStatus) updateData.currentStatus = currentStatus;
+
     if (height !== undefined) updateData.height = height;
     if (complexion) updateData.complexion = complexion;
+    if (physicalStatus) updateData.physicalStatus = physicalStatus;
     if (livingCountry) updateData.livingCountry = livingCountry;
     if (state) updateData.state = state;
     if (city) updateData.city = city;

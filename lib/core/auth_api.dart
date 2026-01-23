@@ -6,9 +6,9 @@ class AuthApi {
 
   /// Register new user (basic info only - rest in complete profile)
   Future<Map<String, dynamic>> register({
-    required String fullName,
     required String email,
     required String password,
+    String? fullName, // Optional - will be set in complete profile
     String? role, // Optional - will be set in complete profile
     String? mobile,
   }) async {
@@ -18,9 +18,9 @@ class AuthApi {
       print('📤 Registering user: $email');
       
       final response = await _dio.post('/auth/register', data: {
-        'fullName': fullName,
         'email': email,
         'password': password,
+        if (fullName != null) 'fullName': fullName, // Only send if provided
         if (role != null) 'role': role, // Only send if provided
         if (mobile != null) 'mobile': mobile,
       });

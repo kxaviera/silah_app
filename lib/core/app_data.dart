@@ -108,11 +108,33 @@ class AppData {
     'More than 5',
   ];
 
-  // Marital status options
-  static const List<String> maritalStatus = [
-    'Married',
-    'Unmarried',
-    'Both',
+  // Marital status options (for siblings - number of married)
+  static const List<String> siblingMarriedCounts = [
+    '0',
+    '1',
+    '2',
+    '3',
+    '4',
+    '5',
+    'More than 5',
+  ];
+
+  // Current status options (for user)
+  static const List<String> currentStatus = [
+    'Single',
+    '2nd Marriage',
+    'Widow',
+    'Widower',
+    'Divorced',
+  ];
+
+  // Physical status options
+  static const List<String> physicalStatus = [
+    'Healthy',
+    'Fit',
+    'Slim',
+    'Handicap',
+    'Other',
   ];
 
   static const List<String> indianStates = [

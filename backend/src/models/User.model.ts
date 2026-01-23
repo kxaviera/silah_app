@@ -15,8 +15,10 @@ export interface IUser extends Document {
   profilePhoto?: string;
   age?: number;
   gender?: 'Male' | 'Female';
+  currentStatus?: 'Single' | '2nd Marriage' | 'Widow' | 'Widower' | 'Divorced';
   height?: number;
   complexion?: string;
+  physicalStatus?: 'Healthy' | 'Fit' | 'Slim' | 'Handicap' | 'Other';
   
   // Location
   country?: string;
@@ -103,13 +105,13 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      required: [true, 'Role is required'],
       enum: ['bride', 'groom'],
+      default: 'groom', // Default, will be updated in complete profile
     },
     fullName: {
       type: String,
-      required: [true, 'Full name is required'],
       trim: true,
+      default: 'User', // Temporary, will be updated in complete profile
     },
     dateOfBirth: {
       type: Date,
