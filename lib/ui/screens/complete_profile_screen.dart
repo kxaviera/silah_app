@@ -872,6 +872,17 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
             ),
           ),
         ),
+        if (_selectedRole == null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 4),
+            child: Text(
+              'Please select if you are a Bride or Groom',
+              style: TextStyle(
+                color: Colors.red.shade700,
+                fontSize: 12,
+              ),
+            ),
+          ),
       ],
     );
   }
