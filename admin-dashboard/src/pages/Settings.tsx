@@ -81,7 +81,7 @@ export function Settings() {
             price: pricing.standard.groom,
             enabled: s?.boostPricing?.standard?.groom?.enabled ?? true,
           },
-          duration: s?.boostPricing?.standard?.bride?.duration ?? 7,
+          duration: s?.boostPricing?.standard?.duration ?? 7,
         },
         featured: {
           bride: { 
@@ -92,7 +92,7 @@ export function Settings() {
             price: pricing.featured.groom,
             enabled: s?.boostPricing?.featured?.groom?.enabled ?? true,
           },
-          duration: s?.boostPricing?.featured?.bride?.duration ?? 7,
+          duration: s?.boostPricing?.featured?.duration ?? 7,
         },
       });
       if (result.settings) {
