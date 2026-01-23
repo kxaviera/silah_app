@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { User } from '../models/User.model';
+import { Notification } from '../models/Notification.model';
 
 // Get all users with filters
 export const getUsers = async (
@@ -142,6 +143,15 @@ export const blockUser = async (
       return;
     }
 
+    // Send notification to user
+    await Notification.create({
+      userId: user._id,
+      type: 'profile_blocked',
+      title: 'Account Blocked',
+      message: reason || 'Your account has been blocked by admin. Please contact support for more information.',
+      isRead: false,
+    });
+
     res.status(200).json({
       success: true,
       message: 'User blocked successfully',
@@ -221,6 +231,15 @@ export const verifyUser = async (
       return;
     }
 
+    // Send notification to user
+    await Notification.create({
+      userId: user._id,
+      type: 'profile_verified',
+      title: 'Profile Verified',
+      message: notes ? `Your profile has been verified! ${notes}` : 'Congratulations! Your profile has been verified by admin. You can now boost your profile and send contact requests.',
+      isRead: false,
+    });
+
     res.status(200).json({
       success: true,
       message: 'User verified successfully',
@@ -269,6 +288,15 @@ export const rejectUser = async (
       });
       return;
     }
+
+    // Send notification to user
+    await Notification.create({
+      userId: user._id,
+      type: 'profile_rejected',
+      title: 'Profile Verification Rejected',
+      message: `Your profile verification has been rejected. Reason: ${notes}. Please update your profile and try again.`,
+      isRead: false,
+    });
 
     res.status(200).json({
       success: true,

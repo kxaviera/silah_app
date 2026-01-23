@@ -4,7 +4,9 @@ import '../../core/app_data.dart';
 import '../../core/profile_api.dart';
 import '../../core/auth_api.dart';
 import '../../core/app_settings.dart';
+import '../../core/notification_service.dart';
 import '../widgets/profile_ad_card.dart';
+import '../widgets/notification_badge.dart';
 import 'payment_screen.dart';
 import 'payment_post_profile_screen.dart';
 
@@ -45,6 +47,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool _isCheckingBoost = false;
   bool _isActivatingBoost = false;
   Map<String, dynamic>? _boostStatusData; // Store full boost status
+  
+  // Notification count
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -52,6 +57,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _checkBoostStatus();
     _loadProfiles();
     _fetchUserCity();
+    _fetchNotificationCount();
     
     // Debounce search
     _searchController.addListener(() {
@@ -61,6 +67,19 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         }
       });
     });
+  }
+
+  Future<void> _fetchNotificationCount() async {
+    try {
+      final counts = await NotificationService.instance.getUnreadCounts();
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = counts['notifications'] ?? 0;
+        });
+      }
+    } catch (e) {
+      // Silently fail
+    }
   }
 
 
@@ -145,6 +164,32 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     final theme = Theme.of(context);
     return Column(
       children: [
+        const SizedBox(height: 8),
+        // Notification icon and Boost Profile Banner
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Notification icon
+              NotificationBadge(
+                count: _unreadNotificationCount,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.notifications_outlined,
+                    size: 28,
+                    color: Color(0xFF212121),
+                  ),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/notifications').then((_) {
+                      _fetchNotificationCount();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
         const SizedBox(height: 8),
         // Boost Profile Banner - Show always (different content based on status)
         if (!_isCheckingBoost) ...[
@@ -631,83 +676,63 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          // Quick Boost Buttons
-          Row(
-            children: [
-              // Quick Boost Free Button (if available)
-              if (canBoostFree && standardEnabled)
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isActivatingBoost
-                        ? null
-                        : () => _quickBoost(context, 'standard', userRole),
-                    icon: _isActivatingBoost
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : const Icon(Icons.flash_on, size: 18),
-                    label: Text(
-                      _isActivatingBoost
-                          ? 'Activating...'
-                          : canBoostFree
-                              ? 'Boost Free'
-                              : 'Boost Now',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
+          // Single Boost Button - Show based on payment status
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isActivatingBoost
+                  ? null
+                  : () {
+                      // If payment is required, navigate to payment screen
+                      if (isPaymentRequired && standardPrice > 0 && !settings.allowFreePosting) {
+                        Navigator.pushNamed(
+                          context,
+                          PaymentPostProfileScreen.routeName,
+                          arguments: widget.role,
+                        ).then((_) {
+                          _checkBoostStatus();
+                        });
+                      } else {
+                        // Free boost available - activate directly
+                        _quickBoost(context, 'standard', userRole);
+                      }
+                    },
+              icon: _isActivatingBoost
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
+                    )
+                  : Icon(
+                      isPaymentRequired && standardPrice > 0 && !settings.allowFreePosting
+                          ? Icons.rocket_launch
+                          : Icons.flash_on,
+                      size: 18,
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: theme.colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              if (canBoostFree && standardEnabled) const SizedBox(width: 12),
-              // Boost Now Button
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isActivatingBoost
-                      ? null
-                      : () {
-                          Navigator.pushNamed(
-                            context,
-                            PaymentPostProfileScreen.routeName,
-                            arguments: widget.role,
-                          ).then((_) {
-                            _checkBoostStatus();
-                          });
-                        },
-                  icon: const Icon(Icons.rocket_launch, size: 18),
-                  label: const Text(
-                    'Boost Now',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: theme.colorScheme.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
-                  ),
+              label: Text(
+                _isActivatingBoost
+                    ? 'Activating...'
+                    : (isPaymentRequired && standardPrice > 0 && !settings.allowFreePosting
+                        ? 'Boost Now'
+                        : 'Boost Free'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
-            ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: theme.colorScheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
           ),
         ],
       ),

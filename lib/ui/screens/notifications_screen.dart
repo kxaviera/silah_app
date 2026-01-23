@@ -182,6 +182,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.payment;
       case 'payment_failed':
         return Icons.error;
+      case 'profile_verified':
+        return Icons.verified;
+      case 'profile_rejected':
+        return Icons.cancel;
+      case 'profile_blocked':
+        return Icons.block;
       default:
         return Icons.notifications;
     }
@@ -210,6 +216,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'payment_success':
         return Colors.green;
       case 'payment_failed':
+        return Colors.red;
+      case 'profile_verified':
+        return Colors.green;
+      case 'profile_rejected':
+        return Colors.orange;
+      case 'profile_blocked':
         return Colors.red;
       default:
         return Colors.grey;
@@ -276,6 +288,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'payment_success':
       case 'payment_failed':
         // Navigate to payment or invoice screen
+        break;
+      case 'profile_verified':
+      case 'profile_rejected':
+      case 'profile_blocked':
+        // Navigate to profile screen
+        Navigator.pushNamed(
+          context,
+          '/home',
+          arguments: _userRole ?? 'groom',
+        );
         break;
     }
   }

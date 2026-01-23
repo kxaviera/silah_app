@@ -318,44 +318,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
-            
-            // Payment methods section
-            const Text(
-              'Payment methods',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF212121),
+            // Only show payment methods if payment is required
+            if (paymentRequired && finalAmount > 0) ...[
+              const SizedBox(height: 32),
+              
+              // Payment methods section
+              const Text(
+                'Payment methods',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF212121),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Payment method cards
-            _buildPaymentMethodCard(
-              context,
-              'Google Pay',
-              Icons.account_balance_wallet,
-              const Color(0xFF4285F4), // Google blue
-              'Google Pay',
-            ),
-            const SizedBox(height: 12),
-            _buildPaymentMethodCard(
-              context,
-              'PhonePe',
-              Icons.phone_android,
-              const Color(0xFF5F259F), // PhonePe purple
-              'PhonePe',
-            ),
-            const SizedBox(height: 12),
-            _buildPaymentMethodCard(
-              context,
-              'Paytm',
-              Icons.payment,
-              const Color(0xFF00BAF2), // Paytm blue
-              'Paytm',
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              
+              // Payment method cards
+              _buildPaymentMethodCard(
+                context,
+                'Google Pay',
+                Icons.account_balance_wallet,
+                const Color(0xFF4285F4), // Google blue
+                'Google Pay',
+              ),
+              const SizedBox(height: 12),
+              _buildPaymentMethodCard(
+                context,
+                'PhonePe',
+                Icons.phone_android,
+                const Color(0xFF5F259F), // PhonePe purple
+                'PhonePe',
+              ),
+              const SizedBox(height: 12),
+              _buildPaymentMethodCard(
+                context,
+                'Paytm',
+                Icons.payment,
+                const Color(0xFF00BAF2), // Paytm blue
+                'Paytm',
+              ),
+              const SizedBox(height: 32),
+            ],
             
             // Price breakdown
             Container(

@@ -170,12 +170,13 @@ class NotificationService {
           'messages': counts['messages'] as int? ?? 0,
           'requests': counts['requests'] as int? ?? 0,
           'matches': counts['matches'] as int? ?? 0,
+          'notifications': counts['total'] as int? ?? 0, // Total unread notifications
         };
       }
-      return {'total': 0, 'messages': 0, 'requests': 0, 'matches': 0};
+      return {'total': 0, 'messages': 0, 'requests': 0, 'matches': 0, 'notifications': 0};
     } catch (e) {
       print('Error getting unread counts: $e');
-      return {'total': 0, 'messages': 0, 'requests': 0, 'matches': 0};
+      return {'total': 0, 'messages': 0, 'requests': 0, 'matches': 0, 'notifications': 0};
     }
   }
 }

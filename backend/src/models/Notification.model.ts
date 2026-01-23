@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface INotification extends Document {
   userId: mongoose.Types.ObjectId;
-  type: 'new_request' | 'request_accepted' | 'request_rejected' | 'new_message' | 'profile_match' | 'boost_expiring' | 'boost_expired' | 'profile_viewed' | 'system' | 'payment_success';
+  type: 'new_request' | 'request_accepted' | 'request_rejected' | 'new_message' | 'profile_match' | 'boost_expiring' | 'boost_expired' | 'profile_viewed' | 'system' | 'payment_success' | 'profile_verified' | 'profile_rejected' | 'profile_blocked';
   title: string;
   message: string;
   relatedUserId?: mongoose.Types.ObjectId;
@@ -23,7 +23,7 @@ const NotificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
-      enum: ['new_request', 'request_accepted', 'request_rejected', 'new_message', 'profile_match', 'boost_expiring', 'boost_expired', 'profile_viewed', 'system', 'payment_success'],
+      enum: ['new_request', 'request_accepted', 'request_rejected', 'new_message', 'profile_match', 'boost_expiring', 'boost_expired', 'profile_viewed', 'system', 'payment_success', 'profile_verified', 'profile_rejected', 'profile_blocked'],
       required: true,
     },
     title: {
