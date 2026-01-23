@@ -241,14 +241,7 @@ class _AppShellState extends State<AppShell> {
                 if (mounted) {
                   setState(() => _index = 3);
                   // Trigger refresh on ProfileScreen
-                  final profileScreen = pages[3] as ProfileScreen;
-                  if (profileScreen is ProfileScreen) {
-                    // Access the state to refresh
-                    final profileState = profileScreen.createState();
-                    if (profileState is _ProfileScreenState) {
-                      profileState.refreshProfile();
-                    }
-                  }
+                  _profileScreenKey.currentState?.refreshProfile();
                 }
               },
               child: Container(
