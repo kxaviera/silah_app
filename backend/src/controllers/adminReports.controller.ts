@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { Report } from '../models/Report.model';
 import { User } from '../models/User.model';
+import mongoose from 'mongoose';
 
 // Get all reports with filters
 export const getReports = async (
