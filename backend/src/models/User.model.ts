@@ -9,23 +9,23 @@ export interface IUser extends Document {
   googleId?: string;
   role: 'bride' | 'groom';
   fullName: string;
-  dateOfBirth: Date;
+  dateOfBirth?: Date;
   
   // Profile details
   profilePhoto?: string;
-  age: number;
-  gender: 'Male' | 'Female';
+  age?: number;
+  gender?: 'Male' | 'Female';
   height?: number;
   complexion?: string;
   
   // Location
-  country: string;
+  country?: string;
   livingCountry?: string;
   state?: string;
   city?: string;
   
   // Religion & Community
-  religion: string;
+  religion?: string;
   caste?: string;
   
   // Education & Profession
@@ -109,33 +109,27 @@ const UserSchema = new Schema<IUser>(
     },
     dateOfBirth: {
       type: Date,
-      required: [true, 'Date of birth is required'],
     },
     profilePhoto: String,
     age: {
       type: Number,
-      required: true,
     },
     gender: {
       type: String,
       enum: ['Male', 'Female'],
-      required: true,
     },
     height: Number,
     complexion: String,
     country: {
       type: String,
-      required: [true, 'Country is required'],
     },
     livingCountry: String,
     state: String,
     city: {
       type: String,
-      required: [true, 'City is required'],
     },
     religion: {
       type: String,
-      required: [true, 'Religion is required'],
     },
     caste: String,
     education: String,
