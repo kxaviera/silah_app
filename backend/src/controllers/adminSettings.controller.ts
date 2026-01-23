@@ -247,16 +247,42 @@ export const updatePayment = async (
 
     let settings = await AppSettings.findOne();
 
+    // If no settings exist, create default settings first
     if (!settings) {
-      res.status(404).json({
-        success: false,
-        message: 'Settings not found. Please create settings first.',
+      settings = new AppSettings({
+        paymentEnabled: paymentEnabled ?? false,
+        allowFreePosting: allowFreePosting ?? true,
+        boostPricing: {
+          standard: {
+            bride: { price: 19900, duration: 3, enabled: true },
+            groom: { price: 29900, duration: 3, enabled: true },
+          },
+          featured: {
+            bride: { price: 39900, duration: 7, enabled: true },
+            groom: { price: 59900, duration: 7, enabled: true },
+          },
+        },
+        company: {
+          name: 'Silah Matrimony',
+          gstin: '',
+          email: 'support@silah.com',
+          phone: '+91-1234567890',
+          address: '',
+        },
+        app: {
+          termsUrl: '',
+          privacyUrl: '',
+        },
       });
-      return;
+    } else {
+      // Update existing settings
+      if (paymentEnabled !== undefined) {
+        settings.paymentEnabled = paymentEnabled;
+      }
+      if (allowFreePosting !== undefined) {
+        settings.allowFreePosting = allowFreePosting;
+      }
     }
-
-    settings.paymentEnabled = paymentEnabled ?? settings.paymentEnabled;
-    settings.allowFreePosting = allowFreePosting ?? settings.allowFreePosting;
 
     await settings.save();
 

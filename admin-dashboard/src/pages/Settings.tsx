@@ -16,21 +16,31 @@ export function Settings() {
 
   const handlePaymentToggle = async (v: boolean) => {
     setSaving(true);
+    setMessage(null);
     try {
-      await settingsService.updatePaymentControls({ paymentEnabled: v });
+      const result = await settingsService.updatePaymentControls({ paymentEnabled: v });
       setSettings((s) => (s ? { ...s, paymentEnabled: v } : null));
-      setMessage({ type: 'success', text: 'Payment settings updated.' });
-    } catch (e) { setMessage({ type: 'error', text: (e as Error)?.message || 'Failed' }); }
+      setMessage({ type: 'success', text: 'Payment settings updated successfully.' });
+    } catch (e: any) {
+      console.error('Payment toggle error:', e);
+      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to update payment settings';
+      setMessage({ type: 'error', text: errorMessage });
+    }
     setSaving(false);
   };
 
   const handleFreePostingToggle = async (v: boolean) => {
     setSaving(true);
+    setMessage(null);
     try {
-      await settingsService.updatePaymentControls({ allowFreePosting: v });
+      const result = await settingsService.updatePaymentControls({ allowFreePosting: v });
       setSettings((s) => (s ? { ...s, allowFreePosting: v } : null));
-      setMessage({ type: 'success', text: 'Free posting setting updated.' });
-    } catch (e) { setMessage({ type: 'error', text: (e as Error)?.message || 'Failed' }); }
+      setMessage({ type: 'success', text: 'Free posting setting updated successfully.' });
+    } catch (e: any) {
+      console.error('Free posting toggle error:', e);
+      const errorMessage = e?.response?.data?.message || e?.message || 'Failed to update free posting setting';
+      setMessage({ type: 'error', text: errorMessage });
+    }
     setSaving(false);
   };
 
