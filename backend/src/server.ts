@@ -30,7 +30,10 @@ import paymentRoutes from './routes/payment.routes';
 
 // Load environment variables
 // When running from dist/, __dirname is dist/, so go up one level to backend root
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+const envPath = path.resolve(__dirname, '..', '.env');
+console.log('📁 Loading .env from:', envPath);
+dotenv.config({ path: envPath });
+console.log('🔍 MONGODB_URI:', process.env.MONGODB_URI ? 'Found' : 'NOT FOUND');
 
 const app = express();
 const server = http.createServer(app);
