@@ -793,6 +793,61 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     );
   }
 
+  Widget _buildRoleSelection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: SegmentedButton<String>(
+            segments: const [
+              ButtonSegment<String>(
+                value: 'bride',
+                label: Text('Bride'),
+                icon: Icon(Icons.person_outline),
+              ),
+              ButtonSegment<String>(
+                value: 'groom',
+                label: Text('Groom'),
+                icon: Icon(Icons.person_outline),
+              ),
+            ],
+            selected: _selectedRole != null ? {_selectedRole!} : <String>{},
+            onSelectionChanged: (Set<String> newSelection) {
+              setState(() {
+                _selectedRole = newSelection.firstOrNull;
+              });
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return theme.colorScheme.primaryContainer;
+                }
+                return Colors.transparent;
+              }),
+              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return theme.colorScheme.primary;
+                }
+                return Colors.black87;
+              }),
+              side: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return BorderSide(color: theme.colorScheme.primary, width: 2);
+                }
+                return BorderSide(color: Colors.grey.shade300);
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
