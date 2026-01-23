@@ -19,22 +19,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = async () => {
-    if (!authService.isAuthenticated()) { setAdmin(null); setLoading(false); return; }
+    if (!authService.isAuthenticated()) { 
+      setAdmin(null); 
+      setLoading(false); 
+      return; 
+    }
     try {
       const res = await authService.getMe();
       setAdmin(res?.admin || res?.data || null);
     } catch {
-      // If backend fails, check for test mode data
-      const adminData = localStorage.getItem('admin_data');
-      if (adminData) {
-        try {
-          setAdmin(JSON.parse(adminData));
-        } catch {
-          setAdmin(null);
-        }
-      } else {
-        setAdmin(null);
-      }
+      setAdmin(null);
     }
     setLoading(false);
   };

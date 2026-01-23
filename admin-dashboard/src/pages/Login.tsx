@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Card, CardContent, TextField, Button, Typography, Alert, Divider } from '@mui/material';
+import { Box, Card, CardContent, TextField, Button, Typography, Alert } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
@@ -23,16 +23,6 @@ export function Login() {
     else setError(res.message || 'Login failed');
   };
 
-  const handleQuickLogin = async () => {
-    setEmail('admin@test.com');
-    setPassword('test123');
-    setError('');
-    setLoading(true);
-    const res = await login('admin@test.com', 'test123');
-    setLoading(false);
-    if (res.success) navigate(from, { replace: true });
-    else setError(res.message || 'Quick login failed');
-  };
 
   return (
     <Box sx={{ 
@@ -145,41 +135,6 @@ export function Login() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ px: 2, bgcolor: 'background.paper' }}>
-              OR
-            </Typography>
-          </Divider>
-          <Button 
-            fullWidth 
-            variant="outlined" 
-            onClick={handleQuickLogin} 
-            disabled={loading}
-            sx={{ 
-              borderColor: '#28BC79', 
-              color: '#28BC79', 
-              py: 1.5,
-              fontSize: '0.9375rem',
-              fontWeight: 500,
-              '&:hover': { 
-                borderColor: '#1E8A5A', 
-                bgcolor: 'rgba(40, 188, 121, 0.05)',
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.2s',
-            }}
-          >
-            Quick Login (Test Mode)
-          </Button>
-          <Typography 
-            variant="caption" 
-            display="block" 
-            align="center" 
-            color="text.secondary" 
-            sx={{ mt: 2, fontSize: '0.75rem' }}
-          >
-            Test credentials: admin@test.com / test123
-          </Typography>
         </CardContent>
       </Card>
     </Box>
