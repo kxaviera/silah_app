@@ -233,9 +233,9 @@ UserSchema.methods.generateToken = function (): string {
   }
   
   return jwt.sign(
-    { id: this._id.toString(), role: this.role },
+    { id: this._id.toString(), role: this.role } as object,
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRE }
+    { expiresIn: JWT_EXPIRE } as jwt.SignOptions
   );
 };
 
