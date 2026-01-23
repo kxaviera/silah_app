@@ -18,7 +18,7 @@ export function Settings() {
     setSaving(true);
     setMessage(null);
     try {
-      const result = await settingsService.updatePaymentControls({ paymentEnabled: v });
+      await settingsService.updatePaymentControls({ paymentEnabled: v });
       setSettings((s) => (s ? { ...s, paymentEnabled: v } : null));
       setMessage({ type: 'success', text: 'Payment settings updated successfully.' });
     } catch (e: any) {
@@ -33,7 +33,7 @@ export function Settings() {
     setSaving(true);
     setMessage(null);
     try {
-      const result = await settingsService.updatePaymentControls({ allowFreePosting: v });
+      await settingsService.updatePaymentControls({ allowFreePosting: v });
       setSettings((s) => (s ? { ...s, allowFreePosting: v } : null));
       setMessage({ type: 'success', text: 'Free posting setting updated successfully.' });
     } catch (e: any) {

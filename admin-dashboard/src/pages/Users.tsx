@@ -26,7 +26,9 @@ export function Users() {
     try {
       const res = await usersService.getUsers({ page: page + 1, limit: rowsPerPage, search: search || undefined, status: status || undefined });
       setData(res);
-    } catch { setData({ success: false, users: [], total: 0, page: 1, limit: 10 }); }
+    } catch { 
+      setData({ users: [], total: 0, page: 1, limit: 10 }); 
+    }
     setLoading(false);
   };
 

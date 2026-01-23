@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Grid from '@mui/material/GridLegacy';
 import { 
   Box, Typography, Card, CardContent, Button, Chip, CircularProgress, 
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, Divider, Alert
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Divider, Alert
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BlockIcon from '@mui/icons-material/Block';
