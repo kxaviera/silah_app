@@ -451,6 +451,49 @@ export function UserDetail() {
 
             <Divider sx={{ my: 2 }} />
 
+            {/* Family Details */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                Family Details
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Father's Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.fatherName || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Father's Occupation</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.fatherOccupation || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Mother's Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.motherName || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Mother's Occupation</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.motherOccupation || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Brothers</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.brothersCount || '0'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Brothers Married</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.brothersMaritalStatus || '0'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Sisters</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.sistersCount || '0'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Sisters Married</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.sistersMaritalStatus || '0'}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
             {/* About & Preferences */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
