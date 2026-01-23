@@ -304,6 +304,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
   try {
     const { userId } = req.params;
     const currentUser = req.user;
+    const isOwnProfile = currentUser._id.toString() === userId;
 
     const profile = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpire');
 
@@ -315,24 +316,28 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    if (!profile.isActive || profile.isBlocked) {
-      res.status(404).json({
-        success: false,
-        message: 'Profile not found.',
-      });
-      return;
+    // For own profile, always allow access (no boost check)
+    // For other profiles, check if profile is boosted
+    if (!isOwnProfile) {
+      if (!profile.isActive || profile.isBlocked) {
+        res.status(404).json({
+          success: false,
+          message: 'Profile not found.',
+        });
+        return;
+      }
+
+      // Check if profile is boosted (only for viewing other profiles)
+      if (profile.boostStatus !== 'active' || !profile.boostExpiresAt || profile.boostExpiresAt < new Date()) {
+        res.status(404).json({
+          success: false,
+          message: 'Profile not available.',
+        });
+        return;
+      }
     }
 
-    // Check if profile is boosted
-    if (profile.boostStatus !== 'active' || !profile.boostExpiresAt || profile.boostExpiresAt < new Date()) {
-      res.status(404).json({
-        success: false,
-        message: 'Profile not available.',
-      });
-      return;
-    }
-
-    // Respect privacy settings
+    // Respect privacy settings (only for other profiles)
     const profileData: any = {
       _id: profile._id,
       fullName: profile.fullName,
@@ -353,24 +358,35 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
       partnerPreferences: profile.partnerPreferences,
       role: profile.role,
       boostType: profile.boostType,
-      isVerified: profile.isVerified || false, // Admin verification status
+      boostStatus: profile.boostStatus,
+      boostExpiresAt: profile.boostExpiresAt,
+      isVerified: profile.isVerified || false,
       emailVerified: profile.emailVerified,
       mobileVerified: profile.mobileVerified,
       idVerified: profile.idVerified,
+      verificationNotes: profile.verificationNotes,
+      isProfileComplete: profile.isProfileComplete,
     };
 
-    // Hide mobile if privacy setting is enabled
-    if (!profile.hideMobile) {
+    // For own profile, always show mobile and photos
+    // For other profiles, respect privacy settings
+    if (isOwnProfile) {
       profileData.mobile = profile.mobile;
-    }
-
-    // Hide photos if privacy setting is enabled
-    if (!profile.hidePhotos) {
       profileData.profilePhoto = profile.profilePhoto;
+    } else {
+      // Hide mobile if privacy setting is enabled
+      if (!profile.hideMobile) {
+        profileData.mobile = profile.mobile;
+      }
+
+      // Hide photos if privacy setting is enabled
+      if (!profile.hidePhotos) {
+        profileData.profilePhoto = profile.profilePhoto;
+      }
     }
 
-    // Create profile view record
-    if (currentUser._id.toString() !== userId) {
+    // Create profile view record (only for other profiles)
+    if (!isOwnProfile) {
       await ProfileView.create({
         profileUserId: userId,
         viewerUserId: currentUser._id,

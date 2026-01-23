@@ -90,26 +90,51 @@ class _AppShellState extends State<AppShell> {
       // Get current user ID
       final meResponse = await _authApi.getMe();
       if (meResponse['success'] == true && meResponse['user'] != null) {
-        final userId = meResponse['user']['_id'] as String?;
+        final user = meResponse['user'] as Map<String, dynamic>;
+        final userId = user['_id'] as String?;
+        
+        // Set name and photo from getMe response first
+        if (mounted) {
+          setState(() {
+            _userName = user['fullName'] as String? ?? 'Silah user';
+            // Get profile photo from user object
+            final photoUrl = user['profilePhoto'] as String?;
+            if (photoUrl != null && photoUrl.isNotEmpty) {
+              // Construct full URL if it's a relative path
+              _userPhotoUrl = photoUrl.startsWith('http') 
+                  ? photoUrl 
+                  : '${ApiClient.baseUrl}$photoUrl';
+            } else {
+              _userPhotoUrl = null;
+            }
+          });
+        }
+        
         if (userId != null) {
-          // Get profile data
+          // Get full profile data
           final profileResponse = await _profileApi.getProfile(userId);
           if (profileResponse['success'] == true && profileResponse['profile'] != null) {
             final profile = profileResponse['profile'] as Map<String, dynamic>;
             if (mounted) {
               setState(() {
-                _userName = profile['name'] as String? ?? 
-                           meResponse['user']['fullName'] as String? ?? 
+                _userName = profile['fullName'] as String? ?? 
+                           profile['name'] as String? ??
+                           user['fullName'] as String? ?? 
                            'Silah user';
-                _userPhotoUrl = profile['profilePhoto'] as String?;
+                // Update photo URL from profile
+                final photoUrl = profile['profilePhoto'] as String?;
+                if (photoUrl != null && photoUrl.isNotEmpty) {
+                  _userPhotoUrl = photoUrl.startsWith('http') 
+                      ? photoUrl 
+                      : '${ApiClient.baseUrl}$photoUrl';
+                }
                 _isLoadingProfile = false;
               });
             }
           } else {
-            // Fallback to user data from getMe
+            // Keep data from getMe
             if (mounted) {
               setState(() {
-                _userName = meResponse['user']['fullName'] as String? ?? 'Silah user';
                 _isLoadingProfile = false;
               });
             }
@@ -138,13 +163,16 @@ class _AppShellState extends State<AppShell> {
     }
   }
 
+  // Profile screen key for refresh
+  final GlobalKey<_ProfileScreenState> _profileScreenKey = GlobalKey<_ProfileScreenState>();
+
   @override
   Widget build(BuildContext context) {
     final pages = [
       DiscoverScreen(role: _role),
       const RequestsScreen(),
       const MessagesScreen(),
-      ProfileScreen(role: _role),
+      ProfileScreen(key: _profileScreenKey, role: _role),
     ];
 
     final titles = ['Search', 'Requests', 'Messages', 'Profile'];
@@ -205,11 +233,23 @@ class _AppShellState extends State<AppShell> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GestureDetector(
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
                 // Refresh profile before navigating
-                _fetchUserProfile();
-                setState(() => _index = 3); // Navigate to Profile tab
+                await _fetchUserProfile();
+                // Navigate to Profile tab and refresh it
+                if (mounted) {
+                  setState(() => _index = 3);
+                  // Trigger refresh on ProfileScreen
+                  final profileScreen = pages[3] as ProfileScreen;
+                  if (profileScreen is ProfileScreen) {
+                    // Access the state to refresh
+                    final profileState = profileScreen.createState();
+                    if (profileState is _ProfileScreenState) {
+                      profileState.refreshProfile();
+                    }
+                  }
+                }
               },
               child: Container(
                 padding: const EdgeInsets.all(24),

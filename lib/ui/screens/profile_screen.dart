@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/profile_api.dart';
 import '../../core/auth_api.dart';
+import '../../core/api_client.dart';
 import 'boost_activity_screen.dart';
 import 'payment_screen.dart';
+import 'complete_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String role;
@@ -24,6 +26,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadUserData();
   }
 
+  // Track if we've already loaded data to avoid unnecessary refreshes
+  bool _hasLoaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Only refresh if we haven't loaded yet or if explicitly requested
+    if (!_hasLoaded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_hasLoaded) {
+          _loadUserData();
+        }
+      });
+    }
+  }
+
   Future<void> _loadUserData() async {
     setState(() {
       _isLoading = true;
@@ -34,36 +52,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final authApi = AuthApi();
       final userResponse = await authApi.getMe();
       if (userResponse['success'] == true) {
-        final userId = userResponse['user']?['_id'] ?? userResponse['user']?['id'];
+        final user = userResponse['user'] as Map<String, dynamic>;
+        final userId = user['_id'] ?? user['id'];
+        
+        // Set initial data from getMe
+        setState(() {
+          _userData = {
+            ...user,
+            'name': user['fullName'] ?? user['name'] ?? 'User',
+          };
+        });
+        
         if (userId != null) {
-          final profileResponse = await _profileApi.getProfile(userId);
-          if (profileResponse['success'] == true) {
+          // Get full profile data
+          final profileResponse = await _profileApi.getProfile(userId.toString());
+          if (profileResponse['success'] == true && profileResponse['profile'] != null) {
+            final profile = profileResponse['profile'] as Map<String, dynamic>;
             setState(() {
-              _userData = profileResponse['profile'] as Map<String, dynamic>?;
+              _userData = {
+                ...profile,
+                'name': profile['fullName'] ?? profile['name'] ?? user['fullName'] ?? 'User',
+              };
               _isLoading = false;
+              _hasLoaded = true;
             });
           } else {
+            // Use user data from getMe
             setState(() {
-              _userData = userResponse['user'] as Map<String, dynamic>?;
               _isLoading = false;
+              _hasLoaded = true;
             });
           }
         } else {
           setState(() {
-            _userData = userResponse['user'] as Map<String, dynamic>?;
             _isLoading = false;
+            _hasLoaded = true;
           });
         }
       } else {
         setState(() {
           _isLoading = false;
+          _hasLoaded = true;
         });
       }
     } catch (e) {
+      print('Error loading user data: $e');
       setState(() {
         _isLoading = false;
+        _hasLoaded = true;
       });
     }
+  }
+
+  // Public method to refresh profile (called from drawer)
+  void refreshProfile() {
+    _hasLoaded = false;
+    _loadUserData();
   }
 
   @override
@@ -111,12 +155,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     shape: BoxShape.circle,
                     color: Colors.grey.shade200,
                     border: Border.all(color: Colors.grey.shade300, width: 2),
+                    image: _userData?['profilePhoto'] != null
+                        ? DecorationImage(
+                            image: NetworkImage(
+                              _userData!['profilePhoto'].toString().startsWith('http')
+                                  ? _userData!['profilePhoto'] as String
+                                  : '${ApiClient.baseUrl}${_userData!['profilePhoto']}',
+                            ),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: const Icon(
-                    Icons.person,
-                    size: 50,
-                    color: Colors.black54,
-                  ),
+                  child: _userData?['profilePhoto'] == null
+                      ? const Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Colors.black54,
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 20),
                 Expanded(
@@ -140,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '${userData['age']} years • ${userData['gender']}',
+                        '${userData['age'] ?? 'N/A'} years • ${userData['gender'] ?? 'N/A'}',
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 14,
@@ -148,6 +204,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ],
                   ),
+                ),
+                // Edit button
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      CompleteProfileScreen.routeName,
+                    ).then((_) {
+                      // Refresh profile after editing
+                      _loadUserData();
+                    });
+                  },
+                  tooltip: 'Edit Profile',
                 ),
               ],
             ),
