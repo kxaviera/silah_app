@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import Grid from '@mui/material/GridLegacy';
 import {
-  Box, Typography, Card, CardContent, TextField, Button, Grid, FormControlLabel, Switch,
-  MenuItem, Select, FormControl, InputLabel, Alert, CircularProgress, Chip, Divider,
+  Box, Typography, Card, CardContent, TextField, Button, FormControlLabel, Switch,
+  MenuItem, Select, FormControl, InputLabel, Alert, CircularProgress,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { promoCodesService } from '../services/promoCodes.service';
-import type { PromoCode } from '../services/promoCodes.service';
 
 export function PromoCodeDetail() {
   const { id } = useParams<{ id: string }>();

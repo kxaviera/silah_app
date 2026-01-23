@@ -73,12 +73,26 @@ export function Settings() {
     try {
       const result = await settingsService.updatePricing({
         standard: {
-          bride: { price: pricing.standard.bride },
-          groom: { price: pricing.standard.groom },
+          bride: { 
+            price: pricing.standard.bride,
+            enabled: s?.boostPricing?.standard?.bride?.enabled ?? true,
+          },
+          groom: { 
+            price: pricing.standard.groom,
+            enabled: s?.boostPricing?.standard?.groom?.enabled ?? true,
+          },
+          duration: s?.boostPricing?.standard?.bride?.duration ?? 7,
         },
         featured: {
-          bride: { price: pricing.featured.bride },
-          groom: { price: pricing.featured.groom },
+          bride: { 
+            price: pricing.featured.bride,
+            enabled: s?.boostPricing?.featured?.bride?.enabled ?? true,
+          },
+          groom: { 
+            price: pricing.featured.groom,
+            enabled: s?.boostPricing?.featured?.groom?.enabled ?? true,
+          },
+          duration: s?.boostPricing?.featured?.bride?.duration ?? 7,
         },
       });
       if (result.settings) {
