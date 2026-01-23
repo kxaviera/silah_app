@@ -143,16 +143,28 @@ export function Users() {
                     <TableCell sx={{ py: 2, fontWeight: 500 }}>{u.fullName}</TableCell>
                     <TableCell sx={{ color: '#64748b' }}>{u.email}</TableCell>
                     <TableCell>
-                      <Chip 
-                        label={u.role} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: u.role === 'bride' ? '#fce7f3' : '#dbeafe',
-                          color: u.role === 'bride' ? '#be185d' : '#1e40af',
-                          fontWeight: 500,
-                          textTransform: 'capitalize',
-                        }} 
-                      />
+                      {u.role ? (
+                        <Chip 
+                          label={u.role} 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: u.role === 'bride' ? '#fce7f3' : '#dbeafe',
+                            color: u.role === 'bride' ? '#be185d' : '#1e40af',
+                            fontWeight: 500,
+                            textTransform: 'capitalize',
+                          }} 
+                        />
+                      ) : (
+                        <Chip 
+                          label="Not Set" 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: '#fef3c7',
+                            color: '#92400e',
+                            fontWeight: 500,
+                          }} 
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

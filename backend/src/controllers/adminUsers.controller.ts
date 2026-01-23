@@ -340,3 +340,47 @@ export const deleteUser = async (
     });
   }
 };
+
+// Update user role
+export const updateUserRole = async (
+  req: AdminAuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (!role || !['bride', 'groom'].includes(role)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid role. Role must be either "bride" or "groom".',
+      });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User role updated successfully',
+      user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to update user role',
+    });
+  }
+};

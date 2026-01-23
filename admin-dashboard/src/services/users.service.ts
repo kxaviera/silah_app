@@ -4,7 +4,7 @@ export interface User {
   _id: string;
   email: string;
   fullName: string;
-  role: 'bride' | 'groom';
+  role?: 'bride' | 'groom'; // Optional - set during profile completion
   isBlocked: boolean;
   isVerified: boolean;
   boostStatus: string;
@@ -65,6 +65,10 @@ export const usersService = {
   },
   async rejectUser(id: string, notes: string): Promise<{ success: boolean; message: string; user: User }> {
     const { data } = await adminApi.post<{ success: boolean; message: string; user: User }>(`/users/${id}/reject`, { notes });
+    return data;
+  },
+  async updateUserRole(id: string, role: 'bride' | 'groom'): Promise<{ success: boolean; message: string; user: User }> {
+    const { data } = await adminApi.put<{ success: boolean; message: string; user: User }>(`/users/${id}/role`, { role });
     return data;
   },
 };
