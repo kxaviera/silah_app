@@ -88,13 +88,28 @@ class ProfileAdCard extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            ad.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 17,
-                              color: Colors.black87,
-                            ),
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  ad.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 17,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              if (ad.isVerified)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: Icon(
+                                    Icons.verified,
+                                    size: 18,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         if (ad.featured)

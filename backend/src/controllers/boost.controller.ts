@@ -37,6 +37,15 @@ export const activateBoost = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // Check if user is verified
+    if (!user.isVerified) {
+      res.status(403).json({
+        success: false,
+        message: 'Your profile must be verified before you can boost. Please wait for admin approval.',
+      });
+      return;
+    }
+
     // Check if payment is required
     const rolePricing = settings.boostPricing[boostType as 'standard' | 'featured'][user.role as 'bride' | 'groom'];
     const requiresPayment = settings.paymentEnabled && !settings.allowFreePosting && rolePricing.price > 0;

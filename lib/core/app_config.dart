@@ -1,9 +1,10 @@
 /// App configuration for different environments
 class AppConfig {
   // Environment: 'development', 'staging', 'production'
+  // TEMPORARY: Set to 'production' for testing (remove after testing)
   static const String environment = String.fromEnvironment(
     'ENV',
-    defaultValue: 'development',
+    defaultValue: 'production', // Changed from 'development' to 'production' for testing
   );
 
   // API Base URL

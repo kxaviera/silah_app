@@ -59,6 +59,9 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
 
     const updateData: any = {
       isProfileComplete: true,
+      // Set verification status to false (Under Review) when profile is completed
+      // Admin will verify later
+      isVerified: false,
     };
 
     if (height !== undefined) updateData.height = height;
@@ -271,6 +274,7 @@ export const searchProfiles = async (req: AuthRequest, res: Response): Promise<v
       boostType: profile.boostType,
       featured: profile.boostType === 'featured',
       sponsored: false, // Can be added later
+      isVerified: profile.isVerified || false, // Admin verification status
       profession: profile.profession,
       education: profile.education,
       height: profile.height,
@@ -349,6 +353,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
       partnerPreferences: profile.partnerPreferences,
       role: profile.role,
       boostType: profile.boostType,
+      isVerified: profile.isVerified || false, // Admin verification status
       emailVerified: profile.emailVerified,
       mobileVerified: profile.mobileVerified,
       idVerified: profile.idVerified,

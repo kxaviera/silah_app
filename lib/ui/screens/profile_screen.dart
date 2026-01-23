@@ -123,13 +123,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        userData['name'] as String,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              userData['name'] as String,
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          _buildVerificationBadge(userData),
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -156,12 +163,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
+                final isVerified = _userData?['isVerified'] == true;
+                if (!isVerified) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                        'Your profile must be verified before you can boost. Please wait for admin approval.',
+                      ),
+                      backgroundColor: Colors.orange,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.pushNamed(
                   context,
                   BoostActivityScreen.routeName,
                   arguments: widget.role,
                 );
-                       },
+              },
               icon: const Icon(Icons.rocket_launch, size: 20),
               label: const Text(
                 'Boost my profile',
@@ -524,6 +544,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildVerificationBadge(Map<String, dynamic> userData) {
+    final isVerified = userData['isVerified'] == true;
+    final verificationNotes = userData['verificationNotes'] as String?;
+    final isRejected = verificationNotes != null && verificationNotes.isNotEmpty && !isVerified;
+    
+    if (isVerified) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade300, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.verified, size: 16, color: Colors.green.shade700),
+            const SizedBox(width: 4),
+            Text(
+              'Verified',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.green.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (isRejected) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.shade300, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cancel, size: 16, color: Colors.red.shade700),
+            const SizedBox(width: 4),
+            Text(
+              'Rejected',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade300, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.pending, size: 16, color: Colors.orange.shade700),
+            const SizedBox(width: 4),
+            Text(
+              'Under Review',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
 

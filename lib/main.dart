@@ -108,7 +108,10 @@ class SilahApp extends StatelessWidget {
           final args = ModalRoute.of(context)?.settings.arguments;
           return ResetPasswordScreen();
         },
-        CompleteProfileScreen.routeName: (_) => const CompleteProfileScreen(),
+        CompleteProfileScreen.routeName: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          return CompleteProfileScreen();
+        },
         PaymentPostProfileScreen.routeName: (_) => const PaymentPostProfileScreen(),
         InvoiceScreen.routeName: (_) => const InvoiceScreen(),
         AppShell.routeName: (_) => const AppShell(),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/profile_api.dart';
 import '../../core/request_api.dart';
+import '../../core/auth_api.dart';
 import 'discover_screen.dart' show ProfileAd;
 
 class AdDetailScreen extends StatefulWidget {
@@ -63,6 +64,47 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   Future<void> _handleRequestContact() async {
     if (widget.userId == null) return;
     
+    // Check if current user is verified
+    try {
+      final authApi = AuthApi();
+      final meResponse = await authApi.getMe();
+      if (meResponse['success'] == true) {
+        final currentUser = meResponse['user'] as Map<String, dynamic>?;
+        if (currentUser?['isVerified'] != true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Your profile must be verified before you can send contact requests. Please wait for admin approval.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      // If can't check, proceed - backend will handle it
+    }
+    
+    // Check if target user is verified
+    if (_profile != null && _profile!['isVerified'] != true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'This profile is not verified yet. Contact requests can only be sent to verified profiles.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+    
     setState(() {
       _isRequesting = true;
     });
@@ -111,8 +153,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('An error occurred. Please try again.'),
+          SnackBar(
+            content: Text(e.toString().contains('verified') 
+                ? 'Verification required to send contact requests.'
+                : 'An error occurred. Please try again.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -142,6 +186,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       role: _profile!['role'] ?? 'groom',
       featured: _profile!['boostType'] == 'featured' || _profile!['isBoosted'] == true,
       sponsored: _profile!['boostType'] == 'featured',
+      isVerified: _profile!['isVerified'] == true,
       profession: _profile!['profession'],
       education: _profile!['education'],
       height: _profile!['height'],
@@ -296,13 +341,28 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                ad.name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 22,
-                                  color: Colors.black87,
-                                ),
+                              child: Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      ad.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 22,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  if (ad.isVerified)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 8),
+                                      child: Icon(
+                                        Icons.verified,
+                                        size: 24,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             if (ad.featured)

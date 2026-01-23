@@ -9,7 +9,7 @@ class ProfileApi {
     required Map<String, dynamic> profileData,
   }) async {
     try {
-      final response = await _dio.put('/profiles/complete', data: profileData);
+      final response = await _dio.put('/profile/complete', data: profileData);
       return response.data;
     } on DioException catch (e) {
       return {
@@ -33,7 +33,7 @@ class ProfileApi {
       });
 
       final response = await _dio.post(
-        '/profiles/photo',
+        '/profile/photo',
         data: formData,
         onSendProgress: onProgress,
       );
@@ -82,7 +82,7 @@ class ProfileApi {
         if (prioritizeByCity != null && prioritizeByCity.isNotEmpty) 'prioritizeByCity': prioritizeByCity,
       };
 
-      final response = await _dio.get('/profiles/search', queryParameters: queryParams);
+      final response = await _dio.get('/profile/search', queryParameters: queryParams);
       return response.data;
     } on DioException catch (e) {
       return {
@@ -96,7 +96,7 @@ class ProfileApi {
   /// Get profile by ID
   Future<Map<String, dynamic>> getProfile(String userId) async {
     try {
-      final response = await _dio.get('/profiles/$userId');
+      final response = await _dio.get('/profile/$userId');
       return response.data;
     } on DioException catch (e) {
       return {
@@ -106,25 +106,10 @@ class ProfileApi {
     }
   }
 
-  /// Update profile
-  Future<Map<String, dynamic>> updateProfile({
-    required Map<String, dynamic> profileData,
-  }) async {
-    try {
-      final response = await _dio.put('/profiles', data: profileData);
-      return response.data;
-    } on DioException catch (e) {
-      return {
-        'success': false,
-        'message': e.response?.data['message'] ?? 'Failed to update profile.',
-      };
-    }
-  }
-
   /// Get profile analytics
   Future<Map<String, dynamic>> getAnalytics() async {
     try {
-      final response = await _dio.get('/profiles/analytics');
+      final response = await _dio.get('/profile/analytics');
       return response.data;
     } on DioException catch (e) {
       return {

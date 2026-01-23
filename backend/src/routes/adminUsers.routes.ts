@@ -6,6 +6,7 @@ import {
   blockUser,
   unblockUser,
   verifyUser,
+  rejectUser,
   deleteUser,
 } from '../controllers/adminUsers.controller';
 
@@ -19,6 +20,7 @@ router.get('/:id', getUserById);
 router.post('/:id/block', blockUser);
 router.post('/:id/unblock', unblockUser);
 router.post('/:id/verify', verifyUser);
+router.post('/:id/reject', rejectUser);
 router.delete('/:id', deleteUser);
 
 export default router;

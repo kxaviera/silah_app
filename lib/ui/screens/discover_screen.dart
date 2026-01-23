@@ -1428,6 +1428,7 @@ class ProfileAd {
   final String role; // 'bride' or 'groom'
   final bool featured;
   final bool sponsored;
+  final bool isVerified; // Admin verification status
   final String? profession;
   final String? education;
   final int? height;
@@ -1444,6 +1445,7 @@ class ProfileAd {
     required this.role,
     this.featured = false,
     this.sponsored = false,
+    this.isVerified = false,
     this.profession,
     this.education,
     this.height,
@@ -1462,6 +1464,7 @@ class ProfileAd {
       role: map['role'] ?? '',
       featured: map['boostType'] == 'featured' || map['featured'] == true,
       sponsored: map['sponsored'] == true,
+      isVerified: map['isVerified'] == true,
       profession: map['profession'],
       education: map['education'],
       height: map['height'],

@@ -51,6 +51,10 @@ export interface IUser extends Document {
   emailVerified: boolean;
   mobileVerified: boolean;
   idVerified: boolean;
+  isVerified: boolean; // Admin verification status
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  verificationNotes?: string;
   
   // Account status
   isActive: boolean;
@@ -168,6 +172,16 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verifiedAt: Date,
+    verifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdminUser',
+    },
+    verificationNotes: String,
     isActive: {
       type: Boolean,
       default: true,

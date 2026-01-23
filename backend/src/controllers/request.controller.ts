@@ -26,6 +26,34 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    // Check if current user is verified
+    const currentUser = await User.findById(fromUserId);
+    if (!currentUser) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    if (!currentUser.isVerified) {
+      res.status(403).json({
+        success: false,
+        message: 'Your profile must be verified before you can send contact requests. Please wait for admin approval.',
+      });
+      return;
+    }
+
+    // Check if target user is verified (only verified users can receive requests)
+    const targetUser = await User.findById(toUserId);
+    if (!targetUser || !targetUser.isVerified) {
+      res.status(403).json({
+        success: false,
+        message: 'This profile is not verified yet.',
+      });
+      return;
+    }
+
     // Check if request already exists
     const existingRequest = await ContactRequest.findOne({
       fromUserId,

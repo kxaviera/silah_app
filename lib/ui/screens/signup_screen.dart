@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/auth_api.dart';
+import '../../core/app_config.dart';
 import 'complete_profile_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -207,16 +208,29 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red.shade200),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.red.shade700, fontSize: 14),
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: TextStyle(color: Colors.red.shade700, fontSize: 14),
+                            ),
+                          ),
+                        ],
                       ),
+                      // Debug info (only in debug mode)
+                      if (AppConfig.isDebugMode) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'API: ${AppConfig.baseUrl}',
+                          style: TextStyle(color: Colors.red.shade600, fontSize: 11),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -297,6 +311,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
+      // Debug: Import app_config to show current environment
+      print('🌍 Environment: ${AppConfig.environment}');
+      print('🔗 API URL: ${AppConfig.baseUrl}');
+      
       // Call register API (only basic info - rest in complete profile)
       final response = await _authApi.register(
         fullName: _nameController.text.trim(),
@@ -322,8 +340,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
       }
     } catch (e) {
+      print('❌ Signup screen error: $e');
       setState(() {
-        _errorMessage = 'An error occurred. Please try again.';
+        _errorMessage = 'An error occurred: ${e.toString()}';
         _isLoading = false;
       });
     }

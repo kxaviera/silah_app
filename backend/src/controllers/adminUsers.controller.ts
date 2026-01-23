@@ -42,7 +42,9 @@ export const getUsers = async (
     } else if (actualFilter === 'blocked') {
       query.isBlocked = true;
     } else if (actualFilter === 'verified') {
-      query.emailVerified = true; // User model uses emailVerified
+      query.isVerified = true; // Use isVerified instead of emailVerified
+    } else if (actualFilter === 'unverified') {
+      query.isVerified = false;
     } else if (actualFilter === 'boosted') {
       query.boostStatus = 'active';
       query.boostExpiresAt = { $gt: new Date() };
@@ -191,17 +193,23 @@ export const unblockUser = async (
   }
 };
 
-// Verify user
+// Verify user (with notes)
 export const verifyUser = async (
   req: AdminAuthRequest,
   res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
+    const { notes } = req.body; // Optional verification notes
 
     const user = await User.findByIdAndUpdate(
       id,
-      { emailVerified: true, verifiedAt: new Date() },
+      {
+        isVerified: true,
+        verifiedAt: new Date(),
+        verifiedBy: req.admin?.id,
+        verificationNotes: notes,
+      },
       { new: true }
     ).select('-password');
 
@@ -222,6 +230,55 @@ export const verifyUser = async (
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to verify user',
+    });
+  }
+};
+
+// Reject user verification
+export const rejectUser = async (
+  req: AdminAuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body; // Required rejection reason
+
+    if (!notes || notes.trim().length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required',
+      });
+      return;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        isVerified: false,
+        verifiedAt: undefined,
+        verifiedBy: undefined,
+        verificationNotes: notes,
+      },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User verification rejected',
+      user,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to reject user',
     });
   }
 };

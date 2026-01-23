@@ -13,6 +13,10 @@ class AuthApi {
     String? mobile,
   }) async {
     try {
+      // Debug: Log the API URL being used
+      print('🔗 API Base URL: ${ApiClient.baseUrl}');
+      print('📤 Registering user: $email');
+      
       final response = await _dio.post('/auth/register', data: {
         'fullName': fullName,
         'email': email,
@@ -21,6 +25,8 @@ class AuthApi {
         if (mobile != null) 'mobile': mobile,
       });
 
+      print('✅ Registration successful');
+      
       if (response.data['success'] == true) {
         // Store token
         final token = response.data['token'] as String;
@@ -29,9 +35,42 @@ class AuthApi {
 
       return response.data;
     } on DioException catch (e) {
+      // Enhanced error logging
+      print('❌ Registration error:');
+      print('   Status: ${e.response?.statusCode}');
+      print('   Message: ${e.response?.data}');
+      print('   Error: ${e.message}');
+      print('   Type: ${e.type}');
+      
+      String errorMessage = 'Registration failed. Please try again.';
+      
+      if (e.type == DioExceptionType.connectionTimeout || 
+          e.type == DioExceptionType.receiveTimeout) {
+        errorMessage = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (e.type == DioExceptionType.connectionError) {
+        errorMessage = 'Cannot connect to server. Please check:\n• Your internet connection\n• The server is running\n• API URL: ${ApiClient.baseUrl}';
+      } else if (e.response != null) {
+        // Server responded with an error
+        final serverMessage = e.response?.data['message'];
+        if (serverMessage != null) {
+          errorMessage = serverMessage.toString();
+        } else {
+          errorMessage = 'Server error (${e.response?.statusCode}). Please try again.';
+        }
+      } else {
+        // No response from server
+        errorMessage = 'Network error: ${e.message ?? "Unable to reach server"}';
+      }
+      
       return {
         'success': false,
-        'message': e.response?.data['message'] ?? 'Registration failed. Please try again.',
+        'message': errorMessage,
+      };
+    } catch (e) {
+      print('❌ Unexpected error: $e');
+      return {
+        'success': false,
+        'message': 'An unexpected error occurred. Please try again.',
       };
     }
   }

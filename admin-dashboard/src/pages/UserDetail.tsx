@@ -1,21 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Card, CardContent, Button, Chip, CircularProgress } from '@mui/material';
+import { 
+  Box, Typography, Card, CardContent, Button, Chip, CircularProgress, 
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid, Divider, Alert
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BlockIcon from '@mui/icons-material/Block';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { usersService } from '../services/users.service';
+import type { User } from '../services/users.service';
 
 export function UserDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    usersService.getUser(id).then((d) => { setUser(d.user || d); setLoading(false); }).catch(() => setLoading(false));
+    usersService.getUser(id).then((d) => { 
+      setUser(d.user || d); 
+      setLoading(false); 
+    }).catch(() => setLoading(false));
   }, [id]);
 
   const handleBlock = async () => {
@@ -24,12 +38,40 @@ export function UserDetail() {
       if (user.isBlocked) await usersService.unblockUser(user._id);
       else await usersService.blockUser(user._id);
       setUser((u: any) => ({ ...u, isBlocked: !u?.isBlocked }));
-    } catch (e) { alert((e as Error)?.message || 'Failed'); }
+      setMessage({ type: 'success', text: user.isBlocked ? 'User unblocked successfully' : 'User blocked successfully' });
+    } catch (e) { 
+      setMessage({ type: 'error', text: (e as Error)?.message || 'Failed' }); 
+    }
   };
 
   const handleVerify = async () => {
     if (!user) return;
-    try { await usersService.verifyUser(user._id); setUser((u: any) => ({ ...u, isVerified: true })); } catch (e) { alert((e as Error)?.message || 'Failed'); }
+    setSaving(true);
+    try {
+      const result = await usersService.verifyUser(user._id, verificationNotes);
+      setUser(result.user);
+      setVerifyDialogOpen(false);
+      setVerificationNotes('');
+      setMessage({ type: 'success', text: 'User verified successfully' });
+    } catch (e) { 
+      setMessage({ type: 'error', text: (e as Error)?.message || 'Failed to verify user' }); 
+    }
+    setSaving(false);
+  };
+
+  const handleReject = async () => {
+    if (!user || !rejectionReason.trim()) return;
+    setSaving(true);
+    try {
+      const result = await usersService.rejectUser(user._id, rejectionReason);
+      setUser(result.user);
+      setRejectDialogOpen(false);
+      setRejectionReason('');
+      setMessage({ type: 'success', text: 'User verification rejected' });
+    } catch (e) { 
+      setMessage({ type: 'error', text: (e as Error)?.message || 'Failed to reject user' }); 
+    }
+    setSaving(false);
   };
 
   if (loading) return <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>;
@@ -46,20 +88,81 @@ export function UserDetail() {
       </Button>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: '#1e293b', mb: 0.5 }}>
-          User Details
+          User Details & Verification
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          View and manage user information
+          Review complete profile information and verify user authenticity
         </Typography>
       </Box>
-      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', border: '1px solid #e2e8f0', maxWidth: 800 }}>
+
+      {message && (
+        <Alert 
+          severity={message.type} 
+          onClose={() => setMessage(null)} 
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          {message.text}
+        </Alert>
+      )}
+
+      {/* Profile Header */}
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', mb: 3 }}>
         <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0' }}>
-          <Typography variant="h5" sx={{ fontWeight: 600, color: '#1e293b', mb: 1 }}>
-            {user.fullName}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            {user.email}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            {user.profilePhoto ? (
+              <Box
+                component="img"
+                src={user.profilePhoto}
+                alt={user.fullName}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '2px solid #e2e8f0',
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  bgcolor: '#f1f5f9',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #e2e8f0',
+                }}
+              >
+                <Typography sx={{ fontSize: 32, color: '#94a3b8' }}>
+                  {user.fullName.charAt(0).toUpperCase()}
+                </Typography>
+              </Box>
+            )}
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600, color: '#1e293b' }}>
+                  {user.fullName}
+                </Typography>
+                {user.isVerified && (
+                  <Chip 
+                    icon={<VerifiedUserIcon />} 
+                    label="Verified" 
+                    size="small"
+                    sx={{ 
+                      bgcolor: '#dbeafe',
+                      color: '#1e40af',
+                      fontWeight: 500,
+                    }} 
+                  />
+                )}
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                {user.email}
+              </Typography>
+            </Box>
+          </Box>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Chip 
               label={user.role} 
@@ -78,17 +181,14 @@ export function UserDetail() {
                 fontWeight: 500,
               }} 
             />
-            {user.isVerified && (
-              <Chip 
-                icon={<VerifiedUserIcon />} 
-                label="Verified" 
-                sx={{ 
-                  bgcolor: '#dbeafe',
-                  color: '#1e40af',
-                  fontWeight: 500,
-                }} 
-              />
-            )}
+            <Chip 
+              label={user.isProfileComplete ? 'Profile Complete' : 'Profile Incomplete'} 
+              sx={{ 
+                bgcolor: user.isProfileComplete ? '#d1fae5' : '#fef3c7',
+                color: user.isProfileComplete ? '#065f46' : '#92400e',
+                fontWeight: 500,
+              }} 
+            />
             {user.boostStatus === 'active' && (
               <Chip 
                 label="Boosted" 
@@ -102,25 +202,7 @@ export function UserDetail() {
           </Box>
         </Box>
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-              Joined Date
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-              {new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </Typography>
-          </Box>
-          {user.boostExpiresAt && (
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                Boost Expires
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                {new Date(user.boostExpiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </Typography>
-            </Box>
-          )}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', pt: 2, borderTop: '1px solid #e2e8f0' }}>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', pt: 2 }}>
             <Button 
               variant={user.isBlocked ? 'contained' : 'outlined'} 
               startIcon={user.isBlocked ? <LockOpenIcon /> : <BlockIcon />} 
@@ -138,23 +220,291 @@ export function UserDetail() {
             >
               {user.isBlocked ? 'Unblock User' : 'Block User'}
             </Button>
-            {!user.isVerified && (
+            {!user.isVerified ? (
+              <>
+                <Button 
+                  variant="contained" 
+                  startIcon={<VerifiedUserIcon />} 
+                  onClick={() => setVerifyDialogOpen(true)}
+                  sx={{
+                    bgcolor: '#28BC79',
+                    '&:hover': { bgcolor: '#1E8A5A' }
+                  }}
+                >
+                  Verify User
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<CancelIcon />} 
+                  onClick={() => setRejectDialogOpen(true)}
+                  sx={{
+                    borderColor: '#dc2626',
+                    color: '#dc2626',
+                    '&:hover': { borderColor: '#b91c1c', bgcolor: '#fee2e2' }
+                  }}
+                >
+                  Reject Verification
+                </Button>
+              </>
+            ) : (
               <Button 
                 variant="outlined" 
-                startIcon={<VerifiedUserIcon />} 
-                onClick={handleVerify}
+                startIcon={<CancelIcon />} 
+                onClick={() => setRejectDialogOpen(true)}
                 sx={{
-                  borderColor: '#28BC79',
-                  color: '#28BC79',
-                  '&:hover': { borderColor: '#1E8A5A', bgcolor: 'rgba(40, 188, 121, 0.1)' }
+                  borderColor: '#dc2626',
+                  color: '#dc2626',
+                  '&:hover': { borderColor: '#b91c1c', bgcolor: '#fee2e2' }
                 }}
               >
-                Verify User
+                Revoke Verification
               </Button>
             )}
           </Box>
         </CardContent>
       </Card>
+
+      {/* Complete Profile Information */}
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0' }}>
+        <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
+            Complete Profile Information
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Review all user details for verification
+          </Typography>
+        </Box>
+        <CardContent sx={{ p: 3 }}>
+          <Grid container spacing={3}>
+            {/* Personal Details */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                Personal Details
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Full Name</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.fullName || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Email</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.email || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Mobile</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {user.hideMobile ? 'Hidden' : (user.mobile || '-')}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Date of Birth</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                    {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : '-'}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Age</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.age ? `${user.age} years` : '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Gender</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.gender || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Height</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.height ? `${user.height} cm` : '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Complexion</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.complexion || '-'}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Location */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                Location
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Country (Home)</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.country || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Living Country</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.livingCountry || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">State</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.state || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">City</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.city || '-'}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Religion & Community */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                Religion & Community
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Religion</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.religion || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Caste</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.caste || '-'}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Education & Profession */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                Education & Profession
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Education</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.education || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Profession</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.profession || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="body2" color="text.secondary">Annual Income</Typography>
+                  <Typography variant="body1" sx={{ fontWeight: 500 }}>{user.annualIncome || '-'}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* About & Preferences */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                About & Preferences
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>About</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                  {user.about || '-'}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Partner Preferences</Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                  {user.partnerPreferences || '-'}
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Verification Status */}
+            {user.verifiedAt && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2, color: '#475569' }}>
+                  Verification Status
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Verified At</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                      {new Date(user.verifiedAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </Typography>
+                  </Grid>
+                  {user.verificationNotes && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2" color="text.secondary">Verification Notes</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+                        {user.verificationNotes}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </Grid>
+            )}
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Verify Dialog */}
+      <Dialog open={verifyDialogOpen} onClose={() => !saving && setVerifyDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Verify User</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            After reviewing the user's complete profile, verify this user. You can add optional notes.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Verification Notes (Optional)"
+            value={verificationNotes}
+            onChange={(e) => setVerificationNotes(e.target.value)}
+            placeholder="e.g., All documents verified, profile authentic"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVerifyDialogOpen(false)} disabled={saving}>Cancel</Button>
+          <Button onClick={handleVerify} variant="contained" disabled={saving} sx={{ bgcolor: '#28BC79', '&:hover': { bgcolor: '#1E8A5A' } }}>
+            {saving ? 'Verifying...' : 'Verify User'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onClose={() => !saving && setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{user.isVerified ? 'Revoke Verification' : 'Reject Verification'}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {user.isVerified 
+              ? 'Revoke verification for this user. Please provide a reason.'
+              : 'Reject verification for this user. Please provide a reason.'}
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Reason (Required)"
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="e.g., Incomplete profile, suspicious information, fake documents"
+            required
+            error={!rejectionReason.trim() && saving}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)} disabled={saving}>Cancel</Button>
+          <Button 
+            onClick={handleReject} 
+            variant="contained" 
+            disabled={saving || !rejectionReason.trim()} 
+            sx={{ bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}
+          >
+            {saving ? 'Processing...' : (user.isVerified ? 'Revoke' : 'Reject')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
