@@ -38,18 +38,6 @@ export function UserDetail() {
     }).catch(() => setLoading(false));
   }, [id]);
 
-  const handleBlock = async () => {
-    if (!user) return;
-    try {
-      if (user.isBlocked) await usersService.unblockUser(user._id);
-      else await usersService.blockUser(user._id);
-      setUser((u: any) => ({ ...u, isBlocked: !u?.isBlocked }));
-      setMessage({ type: 'success', text: user.isBlocked ? 'User unblocked successfully' : 'User blocked successfully' });
-    } catch (e) { 
-      setMessage({ type: 'error', text: (e as Error)?.message || 'Failed' }); 
-    }
-  };
-
   const handleUpdateRole = async () => {
     if (!user || !selectedRole) return;
     setSaving(true);
@@ -196,15 +184,26 @@ export function UserDetail() {
             </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip 
-              label={user.role} 
-              sx={{ 
-                bgcolor: user.role === 'bride' ? '#fce7f3' : '#dbeafe',
-                color: user.role === 'bride' ? '#be185d' : '#1e40af',
-                fontWeight: 500,
-                textTransform: 'capitalize',
-              }} 
-            />
+            {user.role ? (
+              <Chip 
+                label={user.role} 
+                sx={{ 
+                  bgcolor: user.role === 'bride' ? '#fce7f3' : '#dbeafe',
+                  color: user.role === 'bride' ? '#be185d' : '#1e40af',
+                  fontWeight: 500,
+                  textTransform: 'capitalize',
+                }} 
+              />
+            ) : (
+              <Chip 
+                label="Role Not Set" 
+                sx={{ 
+                  bgcolor: '#fef3c7',
+                  color: '#92400e',
+                  fontWeight: 500,
+                }} 
+              />
+            )}
             <Chip 
               label={user.isBlocked ? 'Blocked' : 'Active'} 
               sx={{ 
@@ -232,6 +231,13 @@ export function UserDetail() {
               />
             )}
           </Box>
+          {!user.role && (
+            <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
+              <Typography variant="body2">
+                Role will be set when the user completes their profile. Admin can manually set the role if needed.
+              </Typography>
+            </Alert>
+          )}
         </Box>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', pt: 2 }}>
@@ -574,58 +580,73 @@ export function UserDetail() {
         </DialogActions>
       </Dialog>
 
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            {user.role ? (
-              <Chip 
-                label={user.role} 
-                sx={{ 
-                  bgcolor: user.role === 'bride' ? '#fce7f3' : '#dbeafe',
-                  color: user.role === 'bride' ? '#be185d' : '#1e40af',
-                  fontWeight: 500,
-                  textTransform: 'capitalize',
-                }} 
-              />
-            ) : (
-              <Chip 
-                label="Role Not Set" 
-                sx={{ 
-                  bgcolor: '#fef3c7',
-                  color: '#92400e',
-                  fontWeight: 500,
-                }} 
-              />
-            )}
-            <Chip 
-              label={user.isBlocked ? 'Blocked' : 'Active'} 
-              sx={{ 
-                bgcolor: user.isBlocked ? '#fee2e2' : '#d1fae5',
-                color: user.isBlocked ? '#dc2626' : '#065f46',
-                fontWeight: 500,
-              }} 
-            />
-            <Chip 
-              label={user.isProfileComplete ? 'Profile Complete' : 'Profile Incomplete'} 
-              sx={{ 
-                bgcolor: user.isProfileComplete ? '#d1fae5' : '#fef3c7',
-                color: user.isProfileComplete ? '#065f46' : '#92400e',
-                fontWeight: 500,
-              }} 
-            />
-            {user.boostStatus === 'active' && (
-              <Chip 
-                label="Boosted" 
-                sx={{ 
-                  bgcolor: '#fef3c7',
-                  color: '#92400e',
-                  fontWeight: 500,
-                }} 
-              />
-            )}
-          </Box>
-          {!user.role && (
-            <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-              <Typography variant="body2">
-                Role will be set when the user completes their profile. Admin can manually set the role if needed.
-              </Typography>
-            </Alert>
-          )}
+      {/* Role Edit Dialog */}
+      <Dialog open={roleDialogOpen} onClose={() => !saving && setRoleDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{user.role ? 'Edit User Role' : 'Set User Role'}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {user.role 
+              ? 'Update the user\'s role. Role is typically set when the user completes their profile.'
+              : 'Set the user\'s role. Role is typically set when the user completes their profile, but you can set it manually here.'}
+          </Typography>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Role</InputLabel>
+            <Select
+              value={selectedRole}
+              label="Role"
+              onChange={(e) => setSelectedRole(e.target.value as 'bride' | 'groom')}
+            >
+              <MenuItem value="bride">Bride</MenuItem>
+              <MenuItem value="groom">Groom</MenuItem>
+            </Select>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRoleDialogOpen(false)} disabled={saving}>Cancel</Button>
+          <Button 
+            onClick={handleUpdateRole} 
+            variant="contained" 
+            disabled={saving || !selectedRole} 
+            sx={{ bgcolor: '#28BC79', '&:hover': { bgcolor: '#1E8A5A' } }}
+          >
+            {saving ? 'Updating...' : 'Update Role'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onClose={() => !saving && setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{user.isVerified ? 'Revoke Verification' : 'Reject Verification'}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {user.isVerified 
+              ? 'Revoke verification for this user. Please provide a reason.'
+              : 'Reject verification for this user. Please provide a reason.'}
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Reason (Required)"
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="e.g., Incomplete profile, suspicious information, fake documents"
+            required
+            error={!rejectionReason.trim() && saving}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)} disabled={saving}>Cancel</Button>
+          <Button 
+            onClick={handleReject} 
+            variant="contained" 
+            disabled={saving || !rejectionReason.trim()} 
+            sx={{ bgcolor: '#dc2626', '&:hover': { bgcolor: '#b91c1c' } }}
+          >
+            {saving ? 'Processing...' : (user.isVerified ? 'Revoke' : 'Reject')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
