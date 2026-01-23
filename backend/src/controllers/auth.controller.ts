@@ -7,16 +7,16 @@ import { AuthRequest } from '../middleware/auth.middleware';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Register
+// Register (basic signup - only name, email, password, role)
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { fullName, email, password, role, dateOfBirth, country, city, religion, mobile } = req.body;
+    const { fullName, email, password, role, mobile } = req.body;
 
-    // Validation
-    if (!fullName || !email || !password || !role || !dateOfBirth || !country || !city || !religion) {
+    // Validation - only basic fields required for signup
+    if (!fullName || !email || !password || !role) {
       res.status(400).json({
         success: false,
-        message: 'Please provide all required fields.',
+        message: 'Please provide all required fields: fullName, email, password, and role.',
       });
       return;
     }
@@ -43,39 +43,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
-    // Calculate age
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
-    // Validate age (must be 18+)
-    if (age < 18) {
-      res.status(400).json({
-        success: false,
-        message: 'You must be at least 18 years old to register.',
-      });
-      return;
-    }
-
-    // Determine gender from role
-    const gender = role === 'bride' ? 'Female' : 'Male';
-
-    // Create user
+    // Create user with basic info only (rest will be added in complete profile)
     const user = await User.create({
       fullName,
       email: email.toLowerCase(),
       password,
       role,
-      dateOfBirth,
-      age,
-      gender,
-      country,
-      city,
-      religion,
       mobile: mobile || undefined,
       isProfileComplete: false,
     });
