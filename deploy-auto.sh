@@ -38,8 +38,8 @@ echo -e "${GREEN}✅ Code pulled successfully${NC}"
 echo -e "${YELLOW}🔧 Updating Backend...${NC}"
 cd "$PROJECT_DIR/backend" || exit 1
 
-echo "Installing dependencies..."
-npm install --production || {
+echo "Installing dependencies (including dev dependencies for TypeScript build)..."
+npm install || {
     echo -e "${RED}❌ Backend npm install failed${NC}"
     exit 1
 }
