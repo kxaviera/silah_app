@@ -89,7 +89,7 @@ export const getUnreadCounts = async (req: AuthRequest, res: Response): Promise<
     const conversations = await Conversation.find({ participants: userId });
     let unreadMessages = 0;
     conversations.forEach((conv) => {
-      unreadMessages += (conv.unreadCount as Map<string, number>).get(userId.toString()) || 0;
+      unreadMessages += conv.unreadCount.get(userId.toString()) || 0;
     });
 
     // Get unread requests count

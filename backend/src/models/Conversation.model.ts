@@ -5,9 +5,7 @@ export interface IConversation extends Document {
   lastMessage?: string;
   lastMessageAt?: Date;
   lastMessageBy?: mongoose.Types.ObjectId;
-  unreadCount: {
-    [userId: string]: number;
-  };
+  unreadCount: Map<string, number>;
   createdAt: Date;
   updatedAt: Date;
 }

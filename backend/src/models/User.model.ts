@@ -225,13 +225,17 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 
 // Method to generate JWT token
 UserSchema.methods.generateToken = function (): string {
-  const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+  const JWT_SECRET = process.env.JWT_SECRET;
   const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
+  
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined');
+  }
   
   return jwt.sign(
     { id: this._id.toString(), role: this.role },
-    JWT_SECRET as string,
-    { expiresIn: JWT_EXPIRE as string }
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRE }
   );
 };
 

@@ -20,7 +20,7 @@ export const getConversations = async (req: AuthRequest, res: Response): Promise
       const otherParticipant = conv.participants.find(
         (p: any) => p._id.toString() !== userId.toString()
       );
-      const unreadCount = (conv.unreadCount as Map<string, number>).get(userId.toString()) || 0;
+      const unreadCount = conv.unreadCount.get(userId.toString()) || 0;
 
       return {
         _id: conv._id,
@@ -77,7 +77,7 @@ export const getMessages = async (req: AuthRequest, res: Response): Promise<void
     );
 
     // Update conversation unread count
-    (conversation.unreadCount as Map<string, number>).set(userId.toString(), 0);
+    conversation.unreadCount.set(userId.toString(), 0);
     await conversation.save();
 
     res.json({
@@ -141,8 +141,8 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
       conversation.lastMessageBy = senderId;
 
       // Update unread count
-      const currentUnread = (conversation.unreadCount as Map<string, number>).get(receiverId.toString()) || 0;
-      (conversation.unreadCount as Map<string, number>).set(receiverId.toString(), currentUnread + 1);
+      const currentUnread = conversation.unreadCount.get(receiverId.toString()) || 0;
+      conversation.unreadCount.set(receiverId.toString(), currentUnread + 1);
 
       await conversation.save();
     }
