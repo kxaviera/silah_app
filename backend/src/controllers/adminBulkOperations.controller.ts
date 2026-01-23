@@ -1,9 +1,7 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { ActivityLog } from '../models/ActivityLog.model';
-import mongoose from 'mongoose';
-
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
 
 // Bulk block users
 export const bulkBlockUsers = async (

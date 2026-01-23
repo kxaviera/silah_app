@@ -1,9 +1,7 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { Report } from '../models/Report.model';
-import mongoose from 'mongoose';
-
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
 
 // Get all reports with filters
 export const getReports = async (

@@ -1,14 +1,10 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
-import mongoose from 'mongoose';
 import { Report } from '../models/Report.model';
-
-// Import models (you'll need to create these or import from existing files)
-// For now, using mongoose directly - update when you have actual models
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', new mongoose.Schema({}, { strict: false }));
-const Conversation = mongoose.models.Conversation || mongoose.model('Conversation', new mongoose.Schema({}, { strict: false }));
-const Request = mongoose.models.Request || mongoose.model('Request', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
+import { Transaction } from '../models/Transaction.model';
+import { Conversation } from '../models/Conversation.model';
+import { ContactRequest } from '../models/ContactRequest.model';
 
 // Get dashboard statistics
 export const getDashboardStats = async (
@@ -80,7 +76,7 @@ export const getDashboardStats = async (
       }),
       
       // Total requests
-      Request.countDocuments(),
+      ContactRequest.countDocuments(),
       
       // Users yesterday (for growth calculation)
       User.countDocuments({

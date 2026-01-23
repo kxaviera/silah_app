@@ -5,9 +5,7 @@ import { EmailTemplate } from '../models/EmailTemplate.model';
 import { ActivityLog } from '../models/ActivityLog.model';
 import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
-import mongoose from 'mongoose';
-
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
 
 // Send email
 export const sendEmail = async (

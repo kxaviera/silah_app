@@ -1,11 +1,9 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
-import mongoose from 'mongoose';
-
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
-const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', new mongoose.Schema({}, { strict: false }));
-const Request = mongoose.models.Request || mongoose.model('Request', new mongoose.Schema({}, { strict: false }));
-const Conversation = mongoose.models.Conversation || mongoose.model('Conversation', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
+import { Transaction } from '../models/Transaction.model';
+import { ContactRequest } from '../models/ContactRequest.model';
+import { Conversation } from '../models/Conversation.model';
 
 // Get engagement metrics
 export const getEngagementMetrics = async (
@@ -50,7 +48,7 @@ export const getEngagementMetrics = async (
         boostStatus: 'active',
         boostExpiresAt: { $gt: now },
       }),
-      Request.countDocuments(),
+      ContactRequest.countDocuments(),
       Conversation.countDocuments(),
     ]);
 
@@ -114,8 +112,8 @@ export const getConversionFunnel = async (
         createdAt: { $gte: startDate },
         boostStatus: 'active',
       }),
-      Request.countDocuments({ createdAt: { $gte: startDate } }),
-      Request.countDocuments({
+      ContactRequest.countDocuments({ createdAt: { $gte: startDate } }),
+      ContactRequest.countDocuments({
         createdAt: { $gte: startDate },
         status: 'accepted',
       }),

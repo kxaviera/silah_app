@@ -1,9 +1,7 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { Transaction } from '../models/Transaction.model';
-import mongoose from 'mongoose';
-
-const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({}, { strict: false }));
+import { User } from '../models/User.model';
 
 // Get all transactions with filters
 export const getTransactions = async (
