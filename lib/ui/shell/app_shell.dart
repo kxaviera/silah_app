@@ -164,7 +164,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   // Profile screen key for refresh
-  final GlobalKey<_ProfileScreenState> _profileScreenKey = GlobalKey<_ProfileScreenState>();
+  final GlobalKey _profileScreenKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -240,8 +240,17 @@ class _AppShellState extends State<AppShell> {
                 // Navigate to Profile tab and refresh it
                 if (mounted) {
                   setState(() => _index = 3);
-                  // Trigger refresh on ProfileScreen
-                  _profileScreenKey.currentState?.refreshProfile();
+                  // Refresh profile screen using key
+                  final profileState = _profileScreenKey.currentState;
+                  if (profileState != null) {
+                    // Call refreshProfile method using dynamic call
+                    try {
+                      (profileState as dynamic).refreshProfile();
+                    } catch (e) {
+                      // If method doesn't exist, just navigate (profile will refresh on its own)
+                      print('Could not refresh profile: $e');
+                    }
+                  }
                 }
               },
               child: Container(
