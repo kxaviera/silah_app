@@ -229,9 +229,9 @@ UserSchema.methods.generateToken = function (): string {
   const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
   
   return jwt.sign(
-    { id: this._id, role: this.role },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRE }
+    { id: this._id.toString(), role: this.role },
+    JWT_SECRET as string,
+    { expiresIn: JWT_EXPIRE as string }
   );
 };
 

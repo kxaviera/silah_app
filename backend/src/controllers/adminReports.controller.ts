@@ -214,7 +214,12 @@ export const resolveReport = async (
     report.status = 'resolved';
     report.resolvedBy = new mongoose.Types.ObjectId(req.admin?.id || '');
     report.resolvedAt = new Date();
-    report.resolutionAction = action;
+    // Extract action type from string (e.g., "Warning sent, User blocked" -> "block")
+    if (action.toLowerCase().includes('block')) {
+      report.resolutionAction = 'block';
+    } else if (action.toLowerCase().includes('dismiss')) {
+      report.resolutionAction = 'dismiss';
+    }
     if (req.body.notes) {
       report.resolutionNotes = req.body.notes;
     }
