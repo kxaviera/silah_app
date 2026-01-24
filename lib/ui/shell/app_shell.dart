@@ -12,8 +12,10 @@ import '../../core/socket_service.dart';
 import '../../core/auth_api.dart';
 import '../../core/profile_api.dart';
 import '../../core/api_client.dart';
+import '../../core/app_settings.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/payment_post_profile_screen.dart';
+import '../screens/complete_profile_screen.dart';
 import '../widgets/notification_badge.dart';
 
 class AppShell extends StatefulWidget {
@@ -26,7 +28,7 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
-  late final String _role;
+  String _role = 'groom';
   
   int _unreadMessagesCount = 0;
   int _unreadRequestsCount = 0;
@@ -43,9 +45,26 @@ class _AppShellState extends State<AppShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _role = ModalRoute.of(context)?.settings.arguments as String? ?? 'groom';
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map<String, dynamic>) {
+      _role = args['role'] as String? ?? 'groom';
+      final tab = args['initialTab'] as int?;
+      if (tab != null && tab >= 0 && tab <= 3 && _index != tab) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() => _index = tab);
+        });
+      }
+    } else if (args is String) {
+      _role = args;
+    }
     _fetchNotificationCounts();
     _fetchUserProfile();
+    // Fetch app settings to check payment status
+    AppSettingsService.fetchSettings().then((_) {
+      if (mounted) {
+        setState(() {}); // Refresh UI after settings load
+      }
+    });
   }
 
   @override
@@ -182,13 +201,38 @@ class _AppShellState extends State<AppShell> {
         title: Text(titles[_index]),
         backgroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          if (_index == 0)
+            IconButton(
+              icon: _unreadMessagesCount + _unreadRequestsCount + _newMatchesCount > 0
+                  ? NotificationBadge(
+                      count: _unreadMessagesCount + _unreadRequestsCount + _newMatchesCount,
+                      child: const Icon(Icons.notifications_outlined, color: Color(0xFF212121), size: 24),
+                    )
+                  : const Icon(Icons.notifications_outlined, color: Color(0xFF212121), size: 24),
+              onPressed: () {
+                Navigator.pushNamed(context, NotificationsScreen.routeName).then((_) {
+                  _fetchNotificationCounts();
+                });
+              },
+              tooltip: 'Notifications',
+            ),
+        ],
       ),
       drawer: _buildDrawer(context),
-      body: pages[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
+      body: IndexedStack(
+        index: _index,
+        children: pages,
+      ),
+      bottomNavigationBar: SafeArea(
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: (i) {
+            if (_index != i) {
+              setState(() => _index = i);
+            }
+          },
+          destinations: [
           NavigationDestination(
             icon: _newMatchesCount > 0
                 ? NotificationBadge(
@@ -221,6 +265,7 @@ class _AppShellState extends State<AppShell> {
             label: 'Profile',
           ),
         ],
+        ),
       ),
     );
   }
@@ -235,20 +280,29 @@ class _AppShellState extends State<AppShell> {
             GestureDetector(
               onTap: () async {
                 Navigator.pop(context);
-                // Refresh profile before navigating
-                await _fetchUserProfile();
-                // Navigate to Profile tab and refresh it
+                // Navigate to Profile tab first
                 if (mounted) {
                   setState(() => _index = 3);
-                  // Refresh profile screen using key
-                  final profileState = _profileScreenKey.currentState;
-                  if (profileState != null) {
-                    // Call refreshProfile method using dynamic call
-                    try {
-                      (profileState as dynamic).refreshProfile();
-                    } catch (e) {
-                      // If method doesn't exist, just navigate (profile will refresh on its own)
-                      print('Could not refresh profile: $e');
+                  // Wait a bit for tab switch
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  // Navigate to complete profile screen for editing
+                  if (mounted) {
+                    final result = await Navigator.pushNamed(
+                      context,
+                      CompleteProfileScreen.routeName,
+                      arguments: _role,
+                    );
+                    // Refresh profile after editing
+                    if (mounted && result == true) {
+                      await _fetchUserProfile();
+                      final profileState = _profileScreenKey.currentState;
+                      if (profileState != null) {
+                        try {
+                          (profileState as dynamic).refreshProfile();
+                        } catch (e) {
+                          print('Could not refresh profile after edit: $e');
+                        }
+                      }
                     }
                   }
                 }
@@ -369,6 +423,8 @@ class _AppShellState extends State<AppShell> {
                       );
                     },
                   ),
+                  // Only show Payment & Boost if payment is enabled
+                  if (AppSettingsService.settings.paymentEnabled)
                   _buildDrawerItem(
                     context,
                     icon: Icons.payment_outlined,

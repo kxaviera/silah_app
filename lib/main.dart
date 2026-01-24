@@ -27,6 +27,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/terms_screen.dart';
 import 'ui/screens/privacy_screen.dart';
 import 'ui/screens/help_screen.dart';
+import 'ui/screens/help_detail_screen.dart';
 import 'ui/screens/notifications_screen.dart';
 import 'ui/screens/safety_tutorial_screen.dart';
 import 'core/socket_service.dart';
@@ -126,6 +127,9 @@ class SilahApp extends StatelessWidget {
         TermsScreen.routeName: (_) => const TermsScreen(),
         PrivacyScreen.routeName: (_) => const PrivacyScreen(),
         HelpScreen.routeName: (_) => const HelpScreen(),
+        HelpDetailScreen.routeName: (context) {
+          return const HelpDetailScreen();
+        },
         NotificationsScreen.routeName: (_) => const NotificationsScreen(),
         SafetyTutorialScreen.routeName: (_) => const SafetyTutorialScreen(),
       },

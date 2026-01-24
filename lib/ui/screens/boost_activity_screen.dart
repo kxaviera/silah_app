@@ -366,18 +366,48 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                             ),
                             const SizedBox(width: 8),
                             OutlinedButton(
-                              onPressed: () {
-                                Navigator.pushNamed(
-                                  context,
-                                  PaymentScreen.routeName,
-                                  arguments: {
-                                    'boostType': 'featured',
-                                    'role': role,
-                                    'isUpgrade': true,
-                                  },
-                                ).then((_) {
-                                  _loadBoostData();
-                                });
+                              onPressed: () async {
+                                try {
+                                  await AppSettingsService.fetchSettings();
+                                } catch (_) {}
+                                final paymentEnabled = AppSettingsService.isPaymentEnabled();
+                                final payRequired = AppSettingsService.isPaymentRequired();
+                                final price = AppSettingsService.getPrice('featured', role);
+                                if (paymentEnabled && payRequired && price > 0) {
+                                  Navigator.pushNamed(
+                                    context,
+                                    PaymentScreen.routeName,
+                                    arguments: {
+                                      'boostType': 'featured',
+                                      'role': role,
+                                      'isUpgrade': true,
+                                    },
+                                  ).then((_) {
+                                    _loadBoostData();
+                                  });
+                                } else {
+                                  final res = await _profileApi.activateBoost(
+                                    boostType: 'featured',
+                                    isFree: true,
+                                  );
+                                  if (!mounted) return;
+                                  if (res['success'] == true) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Upgraded to Featured! Profile is live.'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                    _loadBoostData();
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(res['message'] as String? ?? 'Failed to upgrade'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
                               },
                               style: OutlinedButton.styleFrom(
                                 backgroundColor: Colors.white,
@@ -408,14 +438,44 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              PaymentPostProfileScreen.routeName,
-                              arguments: role,
-                            ).then((_) {
-                              _loadBoostData();
-                            });
+                          onPressed: () async {
+                            try {
+                              await AppSettingsService.fetchSettings();
+                            } catch (_) {}
+                            final paymentEnabled = AppSettingsService.isPaymentEnabled();
+                            final payRequired = AppSettingsService.isPaymentRequired();
+                            final price = AppSettingsService.getPrice('standard', role);
+                            if (paymentEnabled && payRequired && price > 0) {
+                              Navigator.pushNamed(
+                                context,
+                                PaymentPostProfileScreen.routeName,
+                                arguments: role,
+                              ).then((_) {
+                                _loadBoostData();
+                              });
+                            } else {
+                              final res = await _profileApi.activateBoost(
+                                boostType: 'standard',
+                                isFree: true,
+                              );
+                              if (!mounted) return;
+                              if (res['success'] == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Profile boosted! Your profile is now live.'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                _loadBoostData();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(res['message'] as String? ?? 'Failed to boost'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 18),

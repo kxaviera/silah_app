@@ -144,9 +144,9 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 200,
               fit: BoxFit.contain,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             Text(
-              'Free Classified Matrimony',
+              "India's 1st classified matrimonial platform",
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.white.withOpacity(0.9),

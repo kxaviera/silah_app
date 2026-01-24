@@ -185,4 +185,23 @@ class AuthApi {
       await ApiClient.instance.clearToken();
     }
   }
+
+  /// Delete account (soft delete). Requires reason. Optionally otherReason if reason is 'other'.
+  Future<Map<String, dynamic>> deleteAccount({
+    required String reason,
+    String? otherReason,
+  }) async {
+    try {
+      final response = await _dio.post('/auth/delete-account', data: {
+        'reason': reason,
+        if (otherReason != null && otherReason.trim().isNotEmpty) 'otherReason': otherReason.trim(),
+      });
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': e.response?.data['message'] ?? 'Failed to delete account.',
+      };
+    }
+  }
 }

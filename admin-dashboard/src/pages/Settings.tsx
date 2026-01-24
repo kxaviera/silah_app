@@ -170,7 +170,7 @@ export function Settings() {
                 <Box>
                   <Typography variant="body1" sx={{ fontWeight: 500 }}>Payment enabled</Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    When disabled, all boosts are free.
+                    When disabled, all boosts are free and the payment screen is never shown. Users always boost for free and go live. When enabled, payment screen is shown for boost.
                   </Typography>
                 </Box>
               }

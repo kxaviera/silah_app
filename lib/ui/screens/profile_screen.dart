@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import '../../core/profile_api.dart';
 import '../../core/auth_api.dart';
 import '../../core/api_client.dart';
+import '../../core/app_settings.dart';
+import '../../utils/delete_profile_dialog.dart';
 import 'boost_activity_screen.dart';
 import 'payment_screen.dart';
 import 'complete_profile_screen.dart';
+import 'ad_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String role;
@@ -112,8 +115,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     final userData = _userData ?? {
@@ -132,8 +140,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
 
-    final theme = Theme.of(context);
-    return SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,12 +192,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              userData['name'] as String,
+                              (userData['name'] as String? ?? 'User').trim(),
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           _buildVerificationBadge(userData),
@@ -212,6 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.pushNamed(
                       context,
                       CompleteProfileScreen.routeName,
+                      arguments: widget.role,
                     ).then((_) {
                       // Refresh profile after editing
                       _loadUserData();
@@ -220,6 +232,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   tooltip: 'Edit Profile',
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // View as public button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final userId = _userData?['_id'] ?? _userData?['id'];
+                if (userId == null) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => AdDetailScreen(
+                      userId: userId.toString(),
+                      isViewingSelf: true,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.visibility_outlined, size: 20),
+              label: const Text(
+                'View as public',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: BorderSide(color: theme.colorScheme.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -268,6 +312,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
+              onPressed: () => showDeleteProfileDialog(context),
+              child: Text(
+                'Delete profile',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.red.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           
           // Personal details section
@@ -276,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildInfoCard(
             Icons.person_outline,
             'Name',
-            userData['name'] as String,
+            (userData['name'] as String? ?? 'User').trim(),
           ),
           _buildInfoCard(
             Icons.cake_outlined,
@@ -286,123 +344,140 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _buildInfoCard(
             Icons.person_outline,
             'Gender',
-            userData['gender'] as String,
+            userData['gender'] as String? ?? 'N/A',
           ),
+          if (userData['height'] != null)
           _buildInfoCard(
             Icons.height_outlined,
             'Height',
             '${userData['height']} cm',
           ),
+          if (userData['complexion'] != null)
           _buildInfoCard(
             Icons.face_outlined,
             'Complexion',
-            userData['complexion'] as String,
+            userData['complexion'] as String? ?? 'N/A',
           ),
           
           const SizedBox(height: 24),
           
           // Location section
-          _buildSectionTitle('Location'),
-          const SizedBox(height: 12),
-          _buildInfoCard(
-            Icons.flag_outlined,
-            'Country',
-            userData['country'] as String,
-          ),
-          _buildInfoCard(
-            Icons.map_outlined,
-            'State',
-            userData['state'] as String,
-          ),
-          _buildInfoCard(
-            Icons.location_city_outlined,
-            'City',
-            userData['city'] as String,
-          ),
-          
-          const SizedBox(height: 24),
+          if (userData['country'] != null || userData['state'] != null || userData['city'] != null) ...[
+            _buildSectionTitle('Location'),
+            const SizedBox(height: 12),
+            if (userData['country'] != null)
+            _buildInfoCard(
+              Icons.flag_outlined,
+              'Country',
+              userData['country'] as String? ?? 'N/A',
+            ),
+            if (userData['state'] != null)
+            _buildInfoCard(
+              Icons.map_outlined,
+              'State',
+              userData['state'] as String? ?? 'N/A',
+            ),
+            if (userData['city'] != null)
+            _buildInfoCard(
+              Icons.location_city_outlined,
+              'City',
+              userData['city'] as String? ?? 'N/A',
+            ),
+          ],
           
           // Religion & community
-          _buildSectionTitle('Religion & community'),
-          const SizedBox(height: 12),
-          _buildInfoCard(
-            Icons.church_outlined,
-            'Religion',
-            userData['religion'] as String,
-          ),
-          _buildInfoCard(
-            Icons.group_outlined,
-            'Caste / Community',
-            userData['caste'] as String,
-          ),
-          
-          const SizedBox(height: 24),
+          if (userData['religion'] != null || userData['caste'] != null) ...[
+            const SizedBox(height: 24),
+            _buildSectionTitle('Religion & community'),
+            const SizedBox(height: 12),
+            if (userData['religion'] != null)
+            _buildInfoCard(
+              Icons.church_outlined,
+              'Religion',
+              userData['religion'] as String? ?? 'N/A',
+            ),
+            if (userData['caste'] != null)
+            _buildInfoCard(
+              Icons.group_outlined,
+              'Caste / Community',
+              userData['caste'] as String? ?? 'N/A',
+            ),
+          ],
           
           // Education & profession
-          _buildSectionTitle('Education & profession'),
-          const SizedBox(height: 12),
-          _buildInfoCard(
-            Icons.school_outlined,
-            'Education',
-            userData['education'] as String,
-          ),
-          _buildInfoCard(
-            Icons.work_outline,
-            'Profession',
-            userData['profession'] as String,
-          ),
-          _buildInfoCard(
-            Icons.attach_money_outlined,
-            'Annual income',
-            '\$${userData['income']}',
-          ),
-          
-          const SizedBox(height: 24),
+          if (userData['education'] != null || userData['profession'] != null || userData['annualIncome'] != null) ...[
+            const SizedBox(height: 24),
+            _buildSectionTitle('Education & profession'),
+            const SizedBox(height: 12),
+            if (userData['education'] != null)
+            _buildInfoCard(
+              Icons.school_outlined,
+              'Education',
+              userData['education'] as String? ?? 'N/A',
+            ),
+            if (userData['profession'] != null)
+            _buildInfoCard(
+              Icons.work_outline,
+              'Profession',
+              userData['profession'] as String? ?? 'N/A',
+            ),
+            if (userData['annualIncome'] != null)
+            _buildInfoCard(
+              Icons.attach_money_outlined,
+              'Annual income',
+              '₹${userData['annualIncome']}',
+            ),
+          ],
           
           // About me
-          _buildSectionTitle('About me'),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Text(
-              userData['about'] as String,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.6,
-                color: Colors.black87,
+          if (userData['about'] != null && (userData['about'] as String).isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildSectionTitle('About me'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                userData['about'] as String,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: Colors.black87,
+                ),
               ),
             ),
-          ),
-          
-          const SizedBox(height: 24),
+          ],
           
           // Partner preferences
-          _buildSectionTitle('Partner preferences'),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Text(
-              userData['preferences'] as String,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.6,
-                color: Colors.black87,
+          if (userData['partnerPreferences'] != null && (userData['partnerPreferences'] as String).isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildSectionTitle('Partner preferences'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Text(
+                userData['partnerPreferences'] as String,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.6,
+                  color: Colors.black87,
+                ),
               ),
             ),
-          ),
+          ],
           
           const SizedBox(height: 24),
         ],
+      ),
       ),
     );
   }
@@ -526,18 +601,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  // Navigate to payment for repost
-                  Navigator.pushNamed(
-                    context,
-                    PaymentScreen.routeName,
-                    arguments: {
-                      'boostType': boostType.toLowerCase().contains('featured')
-                          ? 'featured'
-                          : 'standard',
-                      'isRepost': true,
-                    },
-                  );
+                onPressed: () async {
+                  final bt = boostType.toLowerCase().contains('featured')
+                      ? 'featured'
+                      : 'standard';
+                  try {
+                    await AppSettingsService.fetchSettings();
+                  } catch (_) {}
+                  final paymentEnabled = AppSettingsService.isPaymentEnabled();
+                  final payRequired = AppSettingsService.isPaymentRequired();
+                  final price = AppSettingsService.getPrice(bt, widget.role);
+                  if (paymentEnabled && payRequired && price > 0) {
+                    Navigator.pushNamed(
+                      context,
+                      PaymentScreen.routeName,
+                      arguments: {
+                        'boostType': bt,
+                        'role': widget.role,
+                        'isRepost': true,
+                      },
+                    ).then((_) => _loadUserData());
+                  } else {
+                    final res = await _profileApi.activateBoost(
+                      boostType: bt,
+                      isFree: true,
+                    );
+                    if (!mounted) return;
+                    if (res['success'] == true) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile boosted! Your profile is now live.'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                      _loadUserData();
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(res['message'] as String? ?? 'Failed to boost'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),

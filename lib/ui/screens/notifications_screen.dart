@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../core/notification_api.dart';
 import '../../core/auth_api.dart';
+import '../../utils/boost_dialog.dart';
 import 'chat_screen.dart';
-import 'requests_screen.dart';
 import 'boost_activity_screen.dart';
+import '../shell/app_shell.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -52,6 +53,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  Future<bool> _isUserBoosted() async {
+    try {
+      final me = await _authApi.getMe();
+      if (me['success'] != true || me['user'] == null) return false;
+      final u = me['user'] as Map<String, dynamic>;
+      final status = u['boostStatus'] as String?;
+      final expires = u['boostExpiresAt'] as String?;
+      if (status != 'active' || expires == null) return false;
+      return DateTime.parse(expires).isAfter(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _loadNotifications({bool refresh = false}) async {
     if (refresh) {
       setState(() {
@@ -71,7 +86,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
 
       if (response['success'] == true) {
-        final notifications = response['notifications'] as List;
+        final notifications = response['notifications'] as List? ?? [];
         final pagination = response['pagination'] as Map<String, dynamic>?;
 
         setState(() {
@@ -81,7 +96,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             _notifications.addAll(notifications.map((n) => n as Map<String, dynamic>).toList());
           }
 
-          _hasMore = pagination?['hasMore'] as bool? ?? false;
+          // Check if there are more pages
+          if (pagination != null) {
+            final currentPage = pagination['page'] as int? ?? _currentPage;
+            final totalPages = pagination['pages'] as int? ?? 1;
+            _hasMore = currentPage < totalPages;
+          } else {
+            // If no pagination info, assume no more if we got fewer than limit
+            _hasMore = notifications.length >= 20;
+          }
           _isLoading = false;
           _isRefreshing = false;
         });
@@ -92,7 +115,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response['error']?['message'] ?? 'Failed to load notifications')),
+            SnackBar(content: Text(response['message'] ?? response['error']?['message'] ?? 'Failed to load notifications')),
           );
         }
       }
@@ -121,13 +144,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredNotifications {
-    if (_selectedFilter == 'all') return _notifications;
+    if (_selectedFilter == 'all') {
+      return List<Map<String, dynamic>>.from(_notifications);
+    }
     return _notifications.where((n) {
-      final type = n['type'] as String? ?? '';
+      final type = (n['type'] as String? ?? '').toLowerCase();
       if (_selectedFilter == 'request') {
         return type.contains('request');
       }
-      return type.contains(_selectedFilter);
+      if (_selectedFilter == 'messages') {
+        return type.contains('message');
+      }
+      if (_selectedFilter == 'match') {
+        return type.contains('match');
+      }
+      if (_selectedFilter == 'boost') {
+        return type.contains('boost');
+      }
+      return type.contains(_selectedFilter.toLowerCase());
     }).toList();
   }
 
@@ -229,7 +263,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _handleNotificationTap(Map<String, dynamic> notification) async {
-    final notificationId = notification['id'] as String?;
+    final notificationId = notification['id'] as String? ?? notification['_id'] as String?;
     final type = notification['type'] as String;
     final data = notification['data'] as Map<String, dynamic>?;
 
@@ -251,10 +285,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'new_request':
       case 'request_accepted':
       case 'request_rejected':
-        Navigator.pushNamed(context, RequestsScreen.routeName);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppShell.routeName,
+          (route) => false,
+          arguments: {'role': _userRole ?? 'groom', 'initialTab': 1},
+        );
         break;
       case 'new_message':
         if (data?['conversationId'] != null && data?['userId'] != null) {
+          final boosted = await _isUserBoosted();
+          if (!mounted) return;
+          if (!boosted) {
+            await showBoostRequiredDialog(context);
+            return;
+          }
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -266,14 +311,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           );
         } else {
-          Navigator.pushNamed(context, '/messages');
+          // Navigate to AppShell and switch to Messages tab
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppShell.routeName,
+            (route) => false,
+            arguments: {'role': _userRole ?? 'groom', 'initialTab': 2},
+          );
         }
         break;
       case 'new_match':
-        Navigator.pushNamed(
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          '/home',
-          arguments: _userRole ?? 'groom',
+          AppShell.routeName,
+          (route) => false,
+          arguments: {'role': _userRole ?? 'groom', 'initialTab': 0},
         );
         break;
       case 'profile_view':
@@ -292,11 +344,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       case 'profile_verified':
       case 'profile_rejected':
       case 'profile_blocked':
-        // Navigate to profile screen
-        Navigator.pushNamed(
+        // Navigate to Profile tab
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          '/home',
-          arguments: _userRole ?? 'groom',
+          AppShell.routeName,
+          (route) => false,
+          arguments: {'role': _userRole ?? 'groom', 'initialTab': 3},
         );
         break;
     }
@@ -472,15 +525,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             final createdAt = notification['createdAt'];
 
                         return _NotificationCard(
-                          title: notification['title'] as String,
-                          body: notification['body'] as String,
+                          title: notification['title'] as String? ?? notification['message'] as String? ?? 'Notification',
+                          body: notification['body'] as String? ?? notification['message'] as String? ?? '',
                           timeAgo: _getTimeAgo(createdAt),
                           isRead: isRead,
                           icon: _getNotificationIcon(type),
                           iconColor: _getNotificationColor(type),
                           onTap: () => _handleNotificationTap(notification),
                           onDelete: () async {
-                            final notificationId = notification['id'] as String?;
+                            final notificationId = notification['id'] as String? ?? notification['_id'] as String?;
                             if (notificationId != null) {
                               try {
                                 await _api.deleteNotification(notificationId);

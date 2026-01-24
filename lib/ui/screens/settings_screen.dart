@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/notification_api.dart';
+import '../../utils/delete_profile_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,7 +13,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final NotificationApi _api = NotificationApi();
-  
+
   bool _pushNotifications = true;
   bool _messageNotifications = true;
   bool _requestNotifications = true;
@@ -325,14 +326,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               title: const Text(
-                'Delete account',
+                'Delete profile',
                 style: TextStyle(
                   fontWeight: FontWeight.w500,
                   color: Colors.red,
                 ),
               ),
               subtitle: const Text(
-                'Permanently delete your account and all data',
+                'Permanently delete your profile and all data',
                 style: TextStyle(
                   color: Colors.black54,
                   fontSize: 13,
@@ -342,35 +343,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Icons.delete_outline,
                 color: Colors.red.shade400,
               ),
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Delete Account'),
-                    content: const Text(
-                      'Are you sure you want to delete your account? This action cannot be undone.',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Account deletion coming soon')),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        child: const Text('Delete'),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              onTap: () => showDeleteProfileDialog(context),
             ),
           ),
         ],

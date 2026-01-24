@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/auth_api.dart';
 import '../../core/app_config.dart';
 import 'complete_profile_screen.dart';
+import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -224,7 +225,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/login');
+                    Navigator.pushNamed(context, LoginScreen.routeName);
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.black54,

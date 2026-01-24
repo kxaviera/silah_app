@@ -44,12 +44,14 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
     const {
       role, // Role is REQUIRED in complete profile
       name, // Full name is REQUIRED in complete profile
+      mobile,
       dateOfBirth,
       gender,
       currentStatus,
       height,
       complexion,
       physicalStatus,
+      country,
       livingCountry,
       state,
       city,
@@ -122,6 +124,7 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
     if (height !== undefined) updateData.height = height;
     if (complexion) updateData.complexion = complexion;
     if (physicalStatus) updateData.physicalStatus = physicalStatus;
+    if (country) updateData.country = country;
     if (livingCountry) updateData.livingCountry = livingCountry;
     if (state) updateData.state = state;
     if (city) updateData.city = city;
@@ -135,6 +138,7 @@ export const completeProfile = async (req: AuthRequest, res: Response): Promise<
     if (hidePhotos !== undefined) updateData.hidePhotos = hidePhotos;
     if (profileHandledBy) updateData.profileHandledBy = profileHandledBy;
     if (profilePhoto) updateData.profilePhoto = profilePhoto;
+    if (mobile !== undefined && mobile !== null) updateData.mobile = String(mobile).trim() || undefined;
 
     // Family details
     if (fatherName) updateData.fatherName = fatherName;
@@ -437,13 +441,18 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
     };
 
     // For own profile, always show mobile and photos
-    // For other profiles, respect privacy settings
+    // For other profiles, only show mobile if viewer is boosted AND privacy allows
     if (isOwnProfile) {
       profileData.mobile = profile.mobile;
       profileData.profilePhoto = profile.profilePhoto;
     } else {
-      // Hide mobile if privacy setting is enabled
-      if (!profile.hideMobile) {
+      // Check if current user (viewer) is boosted
+      const isViewerBoosted = currentUser.boostStatus === 'active' && 
+                               currentUser.boostExpiresAt && 
+                               new Date(currentUser.boostExpiresAt) > new Date();
+      
+      // Only show mobile if viewer is boosted AND privacy setting allows
+      if (isViewerBoosted && !profile.hideMobile) {
         profileData.mobile = profile.mobile;
       }
 

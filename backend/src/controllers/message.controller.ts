@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { Conversation } from '../models/Conversation.model';
 import { Message } from '../models/Message.model';
+import { User } from '../models/User.model';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 // Get conversations
@@ -96,12 +97,86 @@ export const getMessages = async (req: AuthRequest, res: Response): Promise<void
 export const sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const senderId = req.user._id;
-    const { receiverId, message, conversationId } = req.body;
+    let { receiverId, message, conversationId } = req.body;
 
-    if (!receiverId || !message) {
+    if (!message || (typeof message !== 'string') || !message.trim()) {
       res.status(400).json({
         success: false,
-        message: 'Receiver ID and message are required.',
+        message: 'Message is required.',
+      });
+      return;
+    }
+
+    // Derive receiverId from conversation if only conversationId provided
+    if (conversationId && !receiverId) {
+      const conv = await Conversation.findById(conversationId);
+      if (!conv || !conv.participants.some((p: any) => p.toString() === senderId.toString())) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied.',
+        });
+        return;
+      }
+      const other = conv.participants.find((p: any) => p.toString() !== senderId.toString());
+      if (!other) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid conversation.',
+        });
+        return;
+      }
+      receiverId = other.toString();
+    }
+
+    if (!receiverId) {
+      res.status(400).json({
+        success: false,
+        message: 'Receiver ID or conversation ID is required.',
+      });
+      return;
+    }
+
+    // Check if sender is boosted (only boosted members can send messages)
+    const sender = await User.findById(senderId).select('boostStatus boostExpiresAt blockedUsers');
+    if (!sender) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    const isBoosted = sender.boostStatus === 'active' && 
+                      sender.boostExpiresAt && 
+                      new Date(sender.boostExpiresAt) > new Date();
+    
+    if (!isBoosted) {
+      res.status(403).json({
+        success: false,
+        message: 'Only boosted members can send messages. Please boost your profile to chat with others.',
+      });
+      return;
+    }
+
+    // Check block: sender blocked receiver OR receiver blocked sender
+    const receiver = await User.findById(receiverId).select('blockedUsers').lean();
+    if (!receiver) {
+      res.status(404).json({
+        success: false,
+        message: 'Receiver not found.',
+      });
+      return;
+    }
+    const myBlocked = (sender as any).blockedUsers || [];
+    const theirBlocked = (receiver as any).blockedUsers || [];
+    const iBlockedThem = myBlocked.some((id: any) => id?.toString() === receiverId);
+    const theyBlockedMe = theirBlocked.some((id: any) => id?.toString() === senderId.toString());
+    if (iBlockedThem || theyBlockedMe) {
+      res.status(403).json({
+        success: false,
+        message: iBlockedThem
+          ? 'You have blocked this user. Unblock to send messages.'
+          : 'You cannot send messages to this user.',
       });
       return;
     }

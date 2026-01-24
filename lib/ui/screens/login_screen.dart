@@ -8,6 +8,7 @@ import '../shell/app_shell.dart';
 import '../screens/complete_profile_screen.dart';
 import '../screens/safety_tutorial_screen.dart';
 import '../screens/signup_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -199,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/forgot-password');
+                    Navigator.pushNamed(context, ForgotPasswordScreen.routeName);
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: theme.colorScheme.primary,

@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/profile_api.dart';
 import '../../core/request_api.dart';
 import '../../core/auth_api.dart';
+import '../../core/api_client.dart';
+import '../../utils/boost_dialog.dart';
 import 'discover_screen.dart' show ProfileAd;
 
 class AdDetailScreen extends StatefulWidget {
   final String? userId;
   final ProfileAd? ad; // Optional for backward compatibility
-  const AdDetailScreen({super.key, this.userId, this.ad});
+  final bool isViewingSelf; // When true, viewing own profile as public (from Profile screen)
+  const AdDetailScreen({super.key, this.userId, this.ad, this.isViewingSelf = false});
 
   @override
   State<AdDetailScreen> createState() => _AdDetailScreenState();
@@ -21,6 +24,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
   Map<String, dynamic>? _profile;
   bool _isLoading = false;
   bool _isRequesting = false;
+  bool _isCurrentUserBoosted = false; // Track if current user is boosted
   String? _errorMessage;
   
   @override
@@ -28,6 +32,29 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     super.initState();
     if (widget.userId != null) {
       _loadProfile();
+      _checkCurrentUserBoost();
+    }
+  }
+  
+  Future<void> _checkCurrentUserBoost() async {
+    try {
+      final authApi = AuthApi();
+      final meResponse = await authApi.getMe();
+      if (meResponse['success'] == true) {
+        final currentUser = meResponse['user'] as Map<String, dynamic>?;
+        final boostStatus = currentUser?['boostStatus'] as String?;
+        final boostExpiresAt = currentUser?['boostExpiresAt'] as String?;
+        final isBoosted = boostStatus == 'active' && 
+                         boostExpiresAt != null && 
+                         DateTime.parse(boostExpiresAt).isAfter(DateTime.now());
+        if (mounted) {
+          setState(() {
+            _isCurrentUserBoosted = isBoosted;
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore error
     }
   }
   
@@ -76,6 +103,28 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               SnackBar(
                 content: const Text(
                   'Your profile must be verified before you can send contact requests. Please wait for admin approval.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+          return;
+        }
+        
+        // Check if current user has active boost (only boosted members can send requests)
+        final boostStatus = currentUser?['boostStatus'] as String?;
+        final boostExpiresAt = currentUser?['boostExpiresAt'] as String?;
+        final isBoosted = boostStatus == 'active' && 
+                         boostExpiresAt != null && 
+                         DateTime.parse(boostExpiresAt).isAfter(DateTime.now());
+        
+        if (!isBoosted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Only boosted members can send contact requests. Please boost your profile to connect with others.',
                 ),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
@@ -154,8 +203,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().contains('verified') 
-                ? 'Verification required to send contact requests.'
+            content: Text(e.toString().contains('boosted') || e.toString().contains('verified')
+                ? e.toString().contains('boosted') 
+                    ? 'Only boosted members can send contact requests. Please boost your profile.'
+                    : 'Verification required to send contact requests.'
                 : 'An error occurred. Please try again.'),
             backgroundColor: Colors.red,
           ),
@@ -259,9 +310,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(
+        title: Text(
+          widget.isViewingSelf ? 'View as public' : 'Profile',
+          style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -276,6 +327,32 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.isViewingSelf) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withOpacity(0.4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility, size: 22, color: theme.colorScheme.primary),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'This is how others see your profile. You can chat, view mobile number, and more after they send a request.',
+                        style: TextStyle(fontSize: 13, height: 1.4, color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -299,17 +376,29 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           shape: BoxShape.circle,
                           color: Colors.grey.shade200,
                           border: Border.all(color: Colors.grey.shade300, width: 2),
+                          image: (widget.isViewingSelf && _profile != null && _profile!['profilePhoto'] != null)
+                              ? DecorationImage(
+                                  image: NetworkImage(
+                                    _profile!['profilePhoto'].toString().startsWith('http')
+                                        ? _profile!['profilePhoto'] as String
+                                        : '${ApiClient.baseUrl}${_profile!['profilePhoto']}',
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
                         ),
-                        child: Center(
-                          child: Text(
-                            ad.name[0],
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
+                        child: (widget.isViewingSelf && _profile != null && _profile!['profilePhoto'] != null)
+                            ? null
+                            : Center(
+                                child: Text(
+                                  ad.name[0],
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
                       ),
                       if (ad.featured || ad.sponsored)
                         Positioned(
@@ -463,9 +552,10 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                 border: Border.all(color: Colors.grey.shade200),
               ),
               child: Text(
-                'Looking for a life partner who shares similar values and interests. '
-                'Family-oriented, professional, and seeking a meaningful connection. '
-                'Open to getting to know each other better.',
+                _profile != null && _profile!['about'] != null && (_profile!['about'] as String).isNotEmpty
+                    ? _profile!['about'] as String
+                    : 'Looking for a life partner who shares similar values and interests. '
+                        'Family-oriented, professional, and seeking a meaningful connection.',
                 style: const TextStyle(
                   fontSize: 14,
                   height: 1.6,
@@ -473,6 +563,20 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                 ),
               ),
             ),
+            if (widget.isViewingSelf && _profile != null && _profile!['mobile'] != null && (_profile!['mobile'] as String).isNotEmpty) ...[
+              const SizedBox(height: 24),
+              _buildSectionTitle('Contact'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: _infoRow(Icons.phone_outlined, 'Mobile', _profile!['mobile'] as String),
+              ),
+            ],
             const SizedBox(height: 24),
             _buildSectionTitle('Education & Profession'),
             const SizedBox(height: 12),
@@ -494,63 +598,135 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Contact details will be shared only after approval.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                      ),
+            if (!widget.isViewingSelf) ...[
+              const SizedBox(height: 24),
+              if (!_isCurrentUserBoosted) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.orange.shade300,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isRequesting ? null : _handleRequestContact,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 20,
+                            color: Colors.orange.shade700,
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'To use this feature (chat, request contact, view mobile), boost your profile. Tap Boost Free to go live — no payment.',
+                              style: TextStyle(fontSize: 13, color: Colors.black87),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            await showBoostRequiredDialog(
+                              context,
+                              onBoosted: () {
+                                setState(() => _isCurrentUserBoosted = true);
+                              },
+                            );
+                          },
+                          icon: const Icon(Icons.rocket_launch, size: 20),
+                          label: const Text('Boost Free'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'Contact details will be shared only after approval.',
+                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                icon: _isRequesting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.phone, size: 20),
-                label: const Text(
-                  'Request contact',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isRequesting ? null : _handleRequestContact,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: _isRequesting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.phone, size: 20),
+                    label: const Text(
+                      'Request contact',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              ],
+            ] else ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  label: const Text(
+                    'Edit profile',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: BorderSide(color: theme.colorScheme.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),

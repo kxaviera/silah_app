@@ -4,11 +4,10 @@ import '../../core/app_data.dart';
 import '../../core/profile_api.dart';
 import '../../core/auth_api.dart';
 import '../../core/app_settings.dart';
-import '../../core/notification_service.dart';
 import '../widgets/profile_ad_card.dart';
-import '../widgets/notification_badge.dart';
 import 'payment_screen.dart';
 import 'payment_post_profile_screen.dart';
+import 'boost_activity_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final String role; // 'bride' or 'groom'
@@ -47,9 +46,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool _isCheckingBoost = false;
   bool _isActivatingBoost = false;
   Map<String, dynamic>? _boostStatusData; // Store full boost status
-  
-  // Notification count
-  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -57,7 +53,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     _checkBoostStatus();
     _loadProfiles();
     _fetchUserCity();
-    _fetchNotificationCount();
     
     // Debounce search
     _searchController.addListener(() {
@@ -68,20 +63,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
       });
     });
   }
-
-  Future<void> _fetchNotificationCount() async {
-    try {
-      final counts = await NotificationService.instance.getUnreadCounts();
-      if (mounted) {
-        setState(() {
-          _unreadNotificationCount = counts['notifications'] ?? 0;
-        });
-      }
-    } catch (e) {
-      // Silently fail
-    }
-  }
-
 
   Future<void> _fetchUserCity() async {
     try {
@@ -165,37 +146,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
     return Column(
       children: [
         const SizedBox(height: 8),
-        // Notification icon and Boost Profile Banner
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Notification icon
-              NotificationBadge(
-                count: _unreadNotificationCount,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    size: 28,
-                    color: Color(0xFF212121),
-                  ),
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/notifications').then((_) {
-                      _fetchNotificationCount();
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Boost Profile Banner - Show always (different content based on status)
-        if (!_isCheckingBoost) ...[
-          _buildBoostBanner(context, theme),
-          const SizedBox(height: 8),
-        ],
+        // Search field (notification icon is in AppBar, top-right)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
@@ -224,12 +175,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
-            onChanged: (_) {
-              // Search will trigger via listener
-            },
+            onChanged: (_) {},
             onSubmitted: (_) => _loadProfiles(refresh: true),
           ),
         ),
+        const SizedBox(height: 8),
+        // Boost Profile Banner - Show always (different content based on status)
+        if (!_isCheckingBoost) ...[
+          _buildBoostBanner(context, theme),
+          const SizedBox(height: 8),
+        ],
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -547,21 +502,30 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      PaymentScreen.routeName,
-                      arguments: {
-                        'boostType': 'featured',
-                        'role': userRole,
-                        'isUpgrade': true,
-                      },
-                    ).then((_) {
-                      _checkBoostStatus();
-                    });
+                    // Only open PaymentScreen when payment enabled by admin
+                    final paymentEnabled = AppSettingsService.isPaymentEnabled();
+                    final payRequired = isPaymentRequired && featuredPrice > 0 && !settings.allowFreePosting;
+                    if (paymentEnabled && payRequired) {
+                      Navigator.pushNamed(
+                        context,
+                        PaymentScreen.routeName,
+                        arguments: {
+                          'boostType': 'featured',
+                          'role': userRole,
+                          'isUpgrade': true,
+                        },
+                      ).then((_) {
+                        _checkBoostStatus();
+                      });
+                    } else {
+                      _quickBoost(context, 'featured', userRole);
+                    }
                   },
                   icon: const Icon(Icons.trending_up, size: 18),
                   label: Text(
-                    'Upgrade to Featured (₹$featuredPrice)',
+                    (isPaymentRequired && featuredPrice > 0 && !settings.allowFreePosting)
+                        ? 'Upgrade to Featured (₹$featuredPrice)'
+                        : 'Upgrade to Featured (Free)',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -586,7 +550,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 onPressed: () {
                   Navigator.pushNamed(
                     context,
-                    '/boost-activity',
+                    BoostActivityScreen.routeName,
                     arguments: userRole,
                   );
                 },
@@ -952,7 +916,6 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
           });
           Navigator.pop(context);
           _loadProfiles(refresh: true);
-          Navigator.pop(context);
         },
       ),
     );

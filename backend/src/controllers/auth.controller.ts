@@ -397,7 +397,7 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
   try {
     // In a stateless JWT system, logout is handled client-side by removing the token
     // But we can add token blacklisting here if needed
-    
+
     res.json({
       success: true,
       message: 'Logout successful.',
@@ -406,6 +406,71 @@ export const logout = async (req: AuthRequest, res: Response): Promise<void> => 
     res.status(500).json({
       success: false,
       message: error.message || 'Logout failed.',
+    });
+  }
+};
+
+/** Valid deletion reasons (user-initiated profile delete) */
+const VALID_DELETION_REASONS = [
+  'found_match_silah',
+  'found_match_elsewhere',
+  'not_interested',
+  'privacy_concerns',
+  'taking_break',
+  'other',
+] as const;
+
+// Delete account (soft delete, with reason)
+export const deleteAccount = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user._id;
+    const { reason, otherReason } = req.body;
+
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      res.status(400).json({
+        success: false,
+        message: 'Please select a reason for deleting your profile.',
+      });
+      return;
+    }
+
+    const r = reason.trim();
+    if (!VALID_DELETION_REASONS.includes(r as any)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid reason. Please select a valid option.',
+      });
+      return;
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+      return;
+    }
+
+    const updateData: any = {
+      isActive: false,
+      deletedAt: new Date(),
+      deletionReason: r,
+    };
+    if (r === 'other' && otherReason != null && typeof otherReason === 'string' && otherReason.trim()) {
+      updateData.deletionOtherReason = otherReason.trim();
+    }
+
+    await User.findByIdAndUpdate(userId, updateData);
+
+    res.json({
+      success: true,
+      message: 'Your profile has been deleted. You can sign up again anytime.',
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete account.',
     });
   }
 };

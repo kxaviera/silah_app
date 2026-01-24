@@ -4,7 +4,9 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_data.dart';
 import '../../core/profile_api.dart';
-import 'payment_post_profile_screen.dart';
+import '../../core/auth_api.dart';
+import '../../core/api_client.dart';
+import '../shell/app_shell.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -26,9 +28,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   bool _isLoading = false;
   bool _isUploadingPhoto = false;
   String? _errorMessage;
+  bool _isEditing = false; // Track if editing existing profile
   
   // Form controllers
   final _nameController = TextEditingController();
+  final _mobileController = TextEditingController();
   final _dayController = TextEditingController();
   final _monthController = TextEditingController();
   final _yearController = TextEditingController();
@@ -40,6 +44,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   // Family details controllers
   final _fatherNameController = TextEditingController();
   final _motherNameController = TextEditingController();
+  
+  bool _isLoadingEdit = false; // Loading existing profile when editing
   
   // Family details dropdowns
   String? _fatherOccupation;
@@ -195,6 +201,98 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _checkIfEditing();
+  }
+
+  Future<void> _checkIfEditing() async {
+    try {
+      final authApi = AuthApi();
+      final response = await authApi.getMe();
+      if (response['success'] == true && response['user'] != null) {
+        final user = response['user'] as Map<String, dynamic>;
+        final isProfileComplete = user['isProfileComplete'] as bool? ?? false;
+        setState(() {
+          _isEditing = isProfileComplete;
+        });
+        if (isProfileComplete) {
+          await _loadProfileForEdit(user);
+        }
+      }
+    } catch (e) {
+      // Ignore error, assume new profile
+    }
+  }
+
+  Future<void> _loadProfileForEdit(Map<String, dynamic> user) async {
+    if (!mounted) return;
+    setState(() => _isLoadingEdit = true);
+    try {
+      final name = user['fullName'] as String? ?? user['name'] as String? ?? '';
+      _nameController.text = name;
+      _mobileController.text = (user['mobile'] as String? ?? '').trim();
+
+      final dob = user['dateOfBirth'];
+      if (dob != null) {
+        try {
+          DateTime d;
+          if (dob is String) {
+            d = DateTime.parse(dob);
+          } else {
+            d = dob as DateTime;
+          }
+          _dayController.text = '${d.day}';
+          _monthController.text = '${d.month}';
+          _yearController.text = '${d.year}';
+        } catch (_) {
+          // Ignore invalid date
+        }
+      }
+
+      _heightController.text = user['height']?.toString() ?? '';
+      _incomeController.text = user['annualIncome']?.toString() ?? '';
+      _aboutController.text = (user['about'] as String? ?? '').trim();
+      _preferencesController.text = (user['partnerPreferences'] as String? ?? '').trim();
+      _fatherNameController.text = (user['fatherName'] as String? ?? '').trim();
+      _motherNameController.text = (user['motherName'] as String? ?? '').trim();
+
+      final photo = user['profilePhoto'] as String?;
+      if (photo != null && photo.isNotEmpty) {
+        _profilePhotoUrl = photo.startsWith('http') ? photo : '${ApiClient.baseUrl}$photo';
+      }
+
+      setState(() {
+        _selectedRole = user['role'] as String?;
+        _selectedGender = user['gender'] as String?;
+        _selectedCurrentStatus = user['currentStatus'] as String?;
+        _selectedCountry = user['country'] as String?;
+        _selectedLivingCountry = user['livingCountry'] as String?;
+        _selectedState = user['state'] as String?;
+        _selectedCity = user['city'] as String?;
+        _selectedReligion = user['religion'] as String?;
+        _selectedCaste = user['caste'] as String?;
+        _selectedComplexion = user['complexion'] as String?;
+        _selectedPhysicalStatus = user['physicalStatus'] as String?;
+        _selectedEducation = user['education'] as String?;
+        _selectedProfession = user['profession'] as String?;
+        _profileHandledBy = user['profileHandledBy'] as String? ?? 'self';
+        _fatherOccupation = user['fatherOccupation'] as String?;
+        _motherOccupation = user['motherOccupation'] as String?;
+        _brothersCount = user['brothersCount'] as String?;
+        _brothersMaritalStatus = user['brothersMaritalStatus'] as String?;
+        _sistersCount = user['sistersCount'] as String?;
+        _sistersMaritalStatus = user['sistersMaritalStatus'] as String?;
+        hideMobile = user['hideMobile'] as bool? ?? true;
+        hidePhotos = user['hidePhotos'] as bool? ?? false;
+        _isLoadingEdit = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingEdit = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final role =
         ModalRoute.of(context)?.settings.arguments as String? ?? 'groom';
@@ -215,7 +313,9 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _isLoadingEdit
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
@@ -365,6 +465,21 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
+              TextFormField(
+                controller: _mobileController,
+                style: const TextStyle(color: Colors.black87),
+                decoration: _inputDecoration('Mobile number', Icons.phone_outlined).copyWith(
+                  hintText: 'e.g. 9876543210',
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  final v = value?.trim() ?? '';
+                  if (v.isEmpty) return _isEditing ? null : 'Please enter your mobile number';
+                  if (v.length < 10) return 'Enter a valid 10-digit mobile number';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
               _buildDropdown<String>(
                 label: 'Current status',
                 icon: Icons.person_outline,
@@ -470,12 +585,13 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               _buildDropdown<String>(
                 label: 'Country',
                 icon: Icons.flag_outlined,
-                value: _selectedCountry ?? 'India',
+                value: _selectedCountry,
                 items: AppData.countries,
                 displayText: (value) => value,
+                hint: 'Select country',
                 onChanged: (value) {
                   setState(() {
-                    _selectedCountry = value ?? 'India';
+                    _selectedCountry = value;
                     _selectedState = null;
                     _selectedCity = null;
                   });
@@ -1090,6 +1206,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       final profileData = {
         'role': _selectedRole, // Role selected in complete profile (REQUIRED)
         'name': _nameController.text.trim(),
+        'mobile': _mobileController.text.trim().isNotEmpty ? _mobileController.text.trim() : null,
         'dateOfBirth': dateOfBirth.toIso8601String(),
         'gender': _selectedGender,
         'currentStatus': _selectedCurrentStatus,
@@ -1132,13 +1249,48 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       );
 
       if (response['success'] == true) {
-        // Profile saved successfully, navigate to payment screen
+        // Profile saved successfully
         if (mounted) {
-          Navigator.pushNamed(
-            context,
-            PaymentPostProfileScreen.routeName,
-            arguments: _selectedRole ?? 'groom',
-          );
+          if (_isEditing) {
+            // If editing: profile sent for review again. Show snackbar, then pop.
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Profile sent for review again. You can still use the app.',
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.pop(context, true);
+          } else {
+            // If new profile: always show review dialog, then go to Discover
+            await showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                title: const Text('Profile sent for review'),
+                content: const Text(
+                  'Your profile has been sent for review. Till then you can check profiles and browse matches.',
+                  style: TextStyle(height: 1.5),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+            
+            if (!mounted) return;
+            // Navigate to Discover
+            Navigator.pushReplacementNamed(
+              context,
+              AppShell.routeName,
+              arguments: _selectedRole ?? 'groom',
+            );
+          }
         }
       } else {
         // Show error message
@@ -1158,6 +1310,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _mobileController.dispose();
     _dayController.dispose();
     _monthController.dispose();
     _yearController.dispose();

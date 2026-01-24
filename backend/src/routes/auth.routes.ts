@@ -7,6 +7,7 @@ import {
   forgotPassword,
   resetPassword,
   logout,
+  deleteAccount,
 } from '../controllers/auth.controller';
 import { auth } from '../middleware/auth.middleware';
 
@@ -22,5 +23,6 @@ router.post('/reset-password', resetPassword);
 // Protected routes
 router.get('/me', auth, getMe);
 router.post('/logout', auth, logout);
+router.post('/delete-account', auth, deleteAccount);
 
 export default router;

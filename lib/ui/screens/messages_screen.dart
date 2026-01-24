@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/message_api.dart';
+import '../../core/auth_api.dart';
+import '../../utils/boost_dialog.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -12,11 +14,26 @@ class MessagesScreen extends StatefulWidget {
 
 class _MessagesScreenState extends State<MessagesScreen> {
   final _messageApi = MessageApi();
+  final _authApi = AuthApi();
   final _searchController = TextEditingController();
   
   List<Map<String, dynamic>> _conversations = [];
   bool _isLoading = false;
   String? _errorMessage;
+
+  Future<bool> _isUserBoosted() async {
+    try {
+      final me = await _authApi.getMe();
+      if (me['success'] != true || me['user'] == null) return false;
+      final u = me['user'] as Map<String, dynamic>;
+      final status = u['boostStatus'] as String?;
+      final expires = u['boostExpiresAt'] as String?;
+      if (status != 'active' || expires == null) return false;
+      return DateTime.parse(expires).isAfter(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
 
   @override
   void initState() {
@@ -287,7 +304,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
                                           color: Colors.grey,
                                           size: 20,
                                         ),
-                                  onTap: () {
+                                  onTap: () async {
+                                    final boosted = await _isUserBoosted();
+                                    if (!mounted) return;
+                                    if (!boosted) {
+                                      await showBoostRequiredDialog(context);
+                                      return;
+                                    }
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(

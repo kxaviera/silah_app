@@ -5,6 +5,7 @@ import '../../core/message_api.dart';
 import '../../core/socket_service.dart';
 import '../../core/request_api.dart';
 import '../../core/auth_api.dart';
+import '../../core/block_api.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
@@ -25,6 +26,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _messageApi = MessageApi();
   final _requestApi = RequestApi();
+  final _blockApi = BlockApi();
   final _socketService = SocketService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -32,13 +34,16 @@ class _ChatScreenState extends State<ChatScreen> {
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
-  bool _isBlocked = false;
+  bool _iBlockedThem = false;
+  bool _theyBlockedMe = false;
   bool _isTyping = false;
   bool _otherUserTyping = false;
   bool _canChat = false; // Check if contact request is approved
   bool _checkingChatAccess = true;
   String? _currentUserId;
   String? _errorMessage;
+
+  bool get _isBlocked => _iBlockedThem || _theyBlockedMe;
   
   StreamSubscription<Map<String, dynamic>>? _messageSubscription;
   StreamSubscription<bool>? _typingSubscription;
@@ -49,8 +54,28 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _loadCurrentUserId();
     _checkChatAccess();
+    _checkBlockStatus();
     _loadMessages();
     _setupSocketListeners();
+  }
+
+  Future<void> _checkBlockStatus() async {
+    try {
+      final response = await _blockApi.getBlockStatus(widget.otherUserId);
+      if (mounted && response['success'] == true) {
+        setState(() {
+          _iBlockedThem = response['iBlockedThem'] as bool? ?? false;
+          _theyBlockedMe = response['theyBlockedMe'] as bool? ?? false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _iBlockedThem = false;
+          _theyBlockedMe = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadCurrentUserId() async {
@@ -179,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final message = _controller.text.trim();
-    if (message.isEmpty || _isSending || !_canChat) return;
+    if (message.isEmpty || _isSending || !_canChat || _isBlocked) return;
 
     setState(() {
       _isSending = true;
@@ -325,12 +350,39 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.black87),
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'block') {
-                setState(() => _isBlocked = true);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${widget.name} has been blocked')),
-                );
+                final res = await _blockApi.blockUser(widget.otherUserId);
+                if (!mounted) return;
+                if (res['success'] == true) {
+                  setState(() => _iBlockedThem = true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${widget.name} has been blocked')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res['message'] as String? ?? 'Failed to block'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } else if (value == 'unblock') {
+                final res = await _blockApi.unblockUser(widget.otherUserId);
+                if (!mounted) return;
+                if (res['success'] == true) {
+                  setState(() => _iBlockedThem = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('${widget.name} has been unblocked')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res['message'] as String? ?? 'Failed to unblock'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               } else if (value == 'report') {
                 showDialog(
                   context: context,
@@ -364,13 +416,17 @@ class _ChatScreenState extends State<ChatScreen> {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'block',
+              PopupMenuItem(
+                value: _iBlockedThem ? 'unblock' : 'block',
                 child: Row(
                   children: [
-                    Icon(Icons.block, color: Colors.red, size: 20),
-                    SizedBox(width: 8),
-                    Text('Block user'),
+                    Icon(
+                      _iBlockedThem ? Icons.block_flipped : Icons.block,
+                      color: _iBlockedThem ? Colors.green : Colors.red,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(_iBlockedThem ? 'Unblock user' : 'Block user'),
                   ],
                 ),
               ),
@@ -423,7 +479,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _isBlocked
+                : _iBlockedThem
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -441,10 +497,67 @@ class _ChatScreenState extends State<ChatScreen> {
                                 color: Colors.black54,
                               ),
                             ),
+                            const SizedBox(height: 24),
+                            OutlinedButton.icon(
+                              onPressed: () async {
+                                final res = await _blockApi.unblockUser(widget.otherUserId);
+                                if (!mounted) return;
+                                if (res['success'] == true) {
+                                  setState(() => _iBlockedThem = false);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('${widget.name} has been unblocked')),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(res['message'] as String? ?? 'Failed to unblock'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.block_flipped, size: 18),
+                              label: const Text('Unblock user'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: theme.colorScheme.primary,
+                                side: BorderSide(color: theme.colorScheme.primary),
+                              ),
+                            ),
                           ],
                         ),
                       )
-                    : _messages.isEmpty
+                    : _theyBlockedMe
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.block,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'You can\'t message this user',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'They have restricted messaging.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.black45,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        : _messages.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -651,11 +764,14 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.grey.shade100,
               child: Center(
                 child: Text(
-                  'You cannot send messages to a blocked user',
+                  _iBlockedThem
+                      ? 'You blocked this user. Unblock from menu or above to chat.'
+                      : 'You cannot send messages to this user.',
                   style: TextStyle(
                     color: Colors.black54,
                     fontSize: 13,
                   ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             )

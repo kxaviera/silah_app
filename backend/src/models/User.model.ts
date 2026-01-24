@@ -62,7 +62,15 @@ export interface IUser extends Document {
   isActive: boolean;
   isBlocked: boolean;
   isProfileComplete: boolean;
-  
+
+  // Chat block (user-to-user): IDs of users this user has blocked from chatting
+  blockedUsers?: mongoose.Types.ObjectId[];
+
+  // Self-deletion (soft delete)
+  deletedAt?: Date;
+  deletionReason?: string;
+  deletionOtherReason?: string;
+
   // Password reset
   resetPasswordToken?: string;
   resetPasswordExpire?: Date;
@@ -196,6 +204,13 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    blockedUsers: [{
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    }],
+    deletedAt: Date,
+    deletionReason: String,
+    deletionOtherReason: String,
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },

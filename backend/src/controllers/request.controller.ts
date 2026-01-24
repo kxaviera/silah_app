@@ -44,6 +44,19 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    // Check if current user has active boost (only boosted members can send requests)
+    const isBoosted = currentUser.boostStatus === 'active' && 
+                      currentUser.boostExpiresAt && 
+                      new Date(currentUser.boostExpiresAt) > new Date();
+    
+    if (!isBoosted) {
+      res.status(403).json({
+        success: false,
+        message: 'Only boosted members can send contact requests. Please boost your profile to connect with others.',
+      });
+      return;
+    }
+
     // Check if target user is verified (only verified users can receive requests)
     const targetUser = await User.findById(toUserId);
     if (!targetUser || !targetUser.isVerified) {
