@@ -100,7 +100,7 @@ const AppSettingsSchema = new Schema<IAppSettings>(
   }
 );
 
-// Ensure only one settings document exists
-AppSettingsSchema.index({ _id: 1 }, { unique: true });
+// Note: MongoDB does not allow custom index on _id. Use findOne/upsert in controller
+// to enforce single settings document.
 
 export const AppSettings = mongoose.model<IAppSettings>('AppSettings', AppSettingsSchema);
