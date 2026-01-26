@@ -45,6 +45,24 @@ export interface User {
   isProfileComplete?: boolean;
   verifiedAt?: string;
   verificationNotes?: string;
+  /** IP at profile creation (compliance) */
+  registrationIp?: string;
+}
+
+export interface UserAccessLogEntry {
+  _id: string;
+  userId: string;
+  ipAddress: string;
+  userAgent?: string;
+  action: 'registration' | 'login' | 'google_login';
+  createdAt: string;
+}
+
+export interface UserAccessLogsResponse {
+  logs: UserAccessLogEntry[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface UsersResponse {
@@ -62,6 +80,10 @@ export const usersService = {
   async getUser(id: string): Promise<{ success: boolean; user: User }> {
     const { data } = await adminApi.get<{ success: boolean; user: User }>(`/users/${id}`);
     return data;
+  },
+  async getUserAccessLogs(id: string, params?: { page?: number; limit?: number }): Promise<UserAccessLogsResponse> {
+    const { data } = await adminApi.get<{ success: boolean } & UserAccessLogsResponse>(`/users/${id}/access-logs`, { params });
+    return { logs: data.logs || [], total: data.total || 0, page: data.page || 1, limit: data.limit || 50 };
   },
   async blockUser(id: string): Promise<{ success: boolean; message: string }> {
     const { data } = await adminApi.post<{ success: boolean; message: string }>(`/users/${id}/block`);

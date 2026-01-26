@@ -1,11 +1,22 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User.model';
+import { UserAccessLog } from '../models/UserAccessLog.model';
 import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
 import { emailService } from '../services/email.service';
 import { AuthRequest } from '../middleware/auth.middleware';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+/** Get client IP (behind proxy: x-forwarded-for first segment, else req.ip) */
+function getClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = typeof forwarded === 'string' ? forwarded.split(',')[0] : forwarded[0];
+    if (first) return first.trim();
+  }
+  return req.ip || req.socket?.remoteAddress || '';
+}
 
 // Register (basic signup - only email, password - fullName and role will be set in complete profile)
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -43,6 +54,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }
     }
 
+    const clientIp = getClientIp(req);
+    const userAgent = (req.headers['user-agent'] as string) || undefined;
+
     // Create user with basic info only (fullName and role will be set in complete profile if not provided)
     const user = await User.create({
       fullName: fullName || 'User', // Temporary name, will be updated in complete profile
@@ -51,6 +65,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: role || 'groom', // Default to 'groom' if not provided, will be updated in complete profile
       mobile: mobile || undefined,
       isProfileComplete: false,
+      registrationIp: clientIp || undefined,
+    });
+
+    await UserAccessLog.create({
+      userId: user._id,
+      ipAddress: clientIp || 'unknown',
+      userAgent,
+      action: 'registration',
     });
 
     const token = user.generateToken();
@@ -130,6 +152,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const clientIp = getClientIp(req);
+    const userAgent = (req.headers['user-agent'] as string) || undefined;
+    await UserAccessLog.create({
+      userId: user._id,
+      ipAddress: clientIp || 'unknown',
+      userAgent,
+      action: 'login',
+    });
+
     const token = user.generateToken();
 
     res.json({
@@ -200,7 +231,7 @@ export const googleSignIn = async (req: Request, res: Response): Promise<void> =
         await user.save();
       }
     } else {
-      // Create new user (will need to complete profile)
+      const clientIp = getClientIp(req);
       user = await User.create({
         email: email.toLowerCase(),
         googleId,
@@ -214,6 +245,7 @@ export const googleSignIn = async (req: Request, res: Response): Promise<void> =
         religion: 'Hindu', // Default
         profilePhoto: picture,
         isProfileComplete: false,
+        registrationIp: clientIp || undefined,
       });
     }
 
@@ -224,6 +256,15 @@ export const googleSignIn = async (req: Request, res: Response): Promise<void> =
       });
       return;
     }
+
+    const clientIp = getClientIp(req);
+    const userAgent = (req.headers['user-agent'] as string) || undefined;
+    await UserAccessLog.create({
+      userId: user._id,
+      ipAddress: clientIp || 'unknown',
+      userAgent,
+      action: 'google_login',
+    });
 
     const token = user.generateToken();
 

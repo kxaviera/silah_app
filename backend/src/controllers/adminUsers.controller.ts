@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AdminAuthRequest } from '../middleware/adminAuth.middleware';
 import { User } from '../models/User.model';
+import { UserAccessLog } from '../models/UserAccessLog.model';
 import { Notification } from '../models/Notification.model';
 
 // Get all users with filters
@@ -111,6 +112,43 @@ export const getUserById = async (
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch user',
+    });
+  }
+};
+
+// Get user access logs (IP + timestamp, for compliance)
+export const getUserAccessLogs = async (
+  req: AdminAuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const page = Math.max(1, parseInt((req.query.page as string) || '1'));
+    const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) || '50')));
+    const skip = (page - 1) * limit;
+
+    const user = await User.findById(id).select('_id').lean();
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    const [logs, total] = await Promise.all([
+      UserAccessLog.find({ userId: id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      UserAccessLog.countDocuments({ userId: id }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      logs,
+      total,
+      page,
+      limit,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch access logs',
     });
   }
 };

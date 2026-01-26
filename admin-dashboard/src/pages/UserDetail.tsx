@@ -13,7 +13,7 @@ import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EditIcon from '@mui/icons-material/Edit';
 import { usersService } from '../services/users.service';
-import type { User } from '../services/users.service';
+import type { User, UserAccessLogEntry } from '../services/users.service';
 
 export function UserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +28,9 @@ export function UserDetail() {
   const [selectedRole, setSelectedRole] = useState<'bride' | 'groom' | ''>('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [accessLogs, setAccessLogs] = useState<UserAccessLogEntry[]>([]);
+  const [accessLogsTotal, setAccessLogsTotal] = useState(0);
+  const [accessLogsLoading, setAccessLogsLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -36,6 +39,15 @@ export function UserDetail() {
       setSelectedRole((d.user || d).role || '');
       setLoading(false); 
     }).catch(() => setLoading(false));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    setAccessLogsLoading(true);
+    usersService.getUserAccessLogs(id, { limit: 50 }).then((r) => {
+      setAccessLogs(r.logs);
+      setAccessLogsTotal(r.total);
+    }).catch(() => {}).finally(() => setAccessLogsLoading(false));
   }, [id]);
 
   const handleUpdateRole = async () => {
@@ -552,6 +564,68 @@ export function UserDetail() {
               </Grid>
             )}
           </Grid>
+        </CardContent>
+      </Card>
+
+      {/* IP & access logs (compliance) */}
+      <Card sx={{ borderRadius: 3, boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', border: '1px solid #e2e8f0', mt: 3 }}>
+        <Box sx={{ p: 3, borderBottom: '1px solid #e2e8f0' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#1e293b' }}>
+            IP & access logs (compliance)
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Registration IP and login/access history — retain at least 1 year from account deactivation
+          </Typography>
+        </Box>
+        <CardContent sx={{ p: 3 }}>
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="body2" color="text.secondary">Registration IP</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                {user.registrationIp || '—'}
+              </Typography>
+            </Grid>
+          </Grid>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#475569', mb: 2 }}>
+            Access history (latest first)
+          </Typography>
+          {accessLogsLoading ? (
+            <Box display="flex" justifyContent="center" py={2}><CircularProgress size={24} /></Box>
+          ) : accessLogs.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">No access logs yet.</Typography>
+          ) : (
+            <Box sx={{ overflow: 'auto' }}>
+              <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', '& th, & td': { borderBottom: '1px solid #e2e8f0', py: 1.5, pr: 2, textAlign: 'left' }, '& th': { color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' } }}>
+                <thead>
+                  <tr>
+                    <th>Date & time</th>
+                    <th>IP address</th>
+                    <th>Action</th>
+                    <th>User agent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {accessLogs.map((log) => (
+                    <tr key={log._id}>
+                      <td>
+                        <Typography variant="body2">
+                          {new Date(log.createdAt).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' })}
+                        </Typography>
+                      </td>
+                      <td><Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{log.ipAddress}</Typography></td>
+                      <td><Chip label={log.action} size="small" sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }} /></td>
+                      <td><Typography variant="caption" sx={{ maxWidth: 200, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.userAgent || ''}>{log.userAgent || '—'}</Typography></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Box>
+              {accessLogsTotal > accessLogs.length && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Showing {accessLogs.length} of {accessLogsTotal} entries
+                </Typography>
+              )}
+            </Box>
+          )}
         </CardContent>
       </Card>
 

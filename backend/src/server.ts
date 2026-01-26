@@ -37,6 +37,8 @@ dotenv.config({ path: envPath });
 console.log('🔍 MONGODB_URI:', process.env.MONGODB_URI ? 'Found' : 'NOT FOUND');
 
 const app = express();
+// Trust proxy so req.ip / X-Forwarded-For are correct behind Nginx (IP logging compliance)
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

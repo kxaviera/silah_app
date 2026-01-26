@@ -66,6 +66,9 @@ export interface IUser extends Document {
   // Chat block (user-to-user): IDs of users this user has blocked from chatting
   blockedUsers?: mongoose.Types.ObjectId[];
 
+  // Compliance: IP at profile creation (retain 1 year from deactivation)
+  registrationIp?: string;
+
   // Self-deletion (soft delete)
   deletedAt?: Date;
   deletionReason?: string;
@@ -208,6 +211,7 @@ const UserSchema = new Schema<IUser>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     }],
+    registrationIp: String,
     deletedAt: Date,
     deletionReason: String,
     deletionOtherReason: String,

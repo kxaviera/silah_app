@@ -3,6 +3,7 @@ import { adminAuth } from '../middleware/adminAuth.middleware';
 import {
   getUsers,
   getUserById,
+  getUserAccessLogs,
   blockUser,
   unblockUser,
   verifyUser,
@@ -17,6 +18,7 @@ const router = express.Router();
 router.use(adminAuth);
 
 router.get('/', getUsers);
+router.get('/:id/access-logs', getUserAccessLogs);
 router.get('/:id', getUserById);
 router.post('/:id/block', blockUser);
 router.post('/:id/unblock', unblockUser);
