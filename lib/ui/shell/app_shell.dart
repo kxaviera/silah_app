@@ -413,7 +413,7 @@ class _AppShellState extends State<AppShell> {
                   _buildDrawerItem(
                     context,
                     icon: Icons.analytics_outlined,
-                    title: 'Boost Activity',
+                    title: 'Profile Activity',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.pushNamed(

@@ -166,11 +166,14 @@ class NotificationService {
       if (response['success'] == true) {
         final counts = response['counts'] as Map<String, dynamic>;
         return {
-          'total': counts['total'] as int? ?? 0,
+          'total': ((counts['notifications'] as int? ?? 0) +
+              (counts['messages'] as int? ?? 0) +
+              (counts['requests'] as int? ?? 0) +
+              (counts['matches'] as int? ?? 0)),
           'messages': counts['messages'] as int? ?? 0,
           'requests': counts['requests'] as int? ?? 0,
           'matches': counts['matches'] as int? ?? 0,
-          'notifications': counts['total'] as int? ?? 0, // Total unread notifications
+          'notifications': counts['notifications'] as int? ?? 0,
         };
       }
       return {'total': 0, 'messages': 0, 'requests': 0, 'matches': 0, 'notifications': 0};

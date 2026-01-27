@@ -12,25 +12,48 @@ export const getConversations = async (req: AuthRequest, res: Response): Promise
     const conversations = await Conversation.find({
       participants: userId,
     })
-      .populate('participants', 'fullName profilePhoto')
-      .populate('lastMessageBy', 'fullName')
+      .populate('participants', 'fullName profilePhoto role')
       .sort({ lastMessageAt: -1 });
 
-    // Format conversations
-    const formattedConversations = conversations.map((conv) => {
-      const otherParticipant = conv.participants.find(
-        (p: any) => p._id.toString() !== userId.toString()
-      );
-      const unreadCount = conv.unreadCount.get(userId.toString()) || 0;
+    // Format conversations in a shape the mobile app expects
+    const formattedConversations = await Promise.all(
+      conversations.map(async (conv) => {
+        const otherParticipant = (conv.participants as any[]).find(
+          (p: any) => p._id.toString() !== userId.toString()
+        );
 
-      return {
-        _id: conv._id,
-        participant: otherParticipant,
-        lastMessage: conv.lastMessage,
-        lastMessageAt: conv.lastMessageAt,
-        unreadCount,
-      };
-    });
+        // Load the latest message for accurate preview + timestamp
+        const lastMsg = await Message.findOne({ conversationId: conv._id })
+          .sort({ createdAt: -1 })
+          .select('message createdAt senderId')
+          .lean();
+
+        const unreadCount = conv.unreadCount.get(String(userId)) || 0;
+
+        return {
+          _id: conv._id,
+          otherUser: otherParticipant
+            ? {
+                _id: otherParticipant._id,
+                fullName: otherParticipant.fullName,
+                name: otherParticipant.fullName,
+                profilePhoto: (otherParticipant as any).profilePhoto,
+                role: (otherParticipant as any).role,
+              }
+            : null,
+          lastMessage: lastMsg
+            ? {
+                _id: lastMsg._id,
+                message: lastMsg.message,
+                createdAt: lastMsg.createdAt,
+                sender: lastMsg.senderId,
+              }
+            : null,
+          updatedAt: conv.updatedAt,
+          unreadCount,
+        };
+      })
+    );
 
     res.json({
       success: true,
@@ -97,14 +120,30 @@ export const getMessages = async (req: AuthRequest, res: Response): Promise<void
 export const sendMessage = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const senderId = req.user._id;
-    let { receiverId, message, conversationId } = req.body;
+    let { receiverId, message, conversationId, messageType } = req.body;
 
-    if (!message || (typeof message !== 'string') || !message.trim()) {
-      res.status(400).json({
-        success: false,
-        message: 'Message is required.',
-      });
-      return;
+    // Determine message type: default to text, but allow image/file
+    const finalType: 'text' | 'image' | 'file' =
+      messageType === 'image' || messageType === 'file' ? messageType : 'text';
+
+    // For text messages, require non-empty text
+    if (finalType === 'text') {
+      if (!message || typeof message !== 'string' || !message.trim()) {
+        res.status(400).json({
+          success: false,
+          message: 'Message is required.',
+        });
+        return;
+      }
+    } else {
+      // For image/file messages, require a file path in `message`
+      if (!message || typeof message !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'File URL is required for media messages.',
+        });
+        return;
+      }
     }
 
     // Derive receiverId from conversation if only conversationId provided
@@ -205,7 +244,7 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
       senderId,
       receiverId,
       message,
-      messageType: 'text',
+      messageType: finalType,
     });
 
     // Update conversation

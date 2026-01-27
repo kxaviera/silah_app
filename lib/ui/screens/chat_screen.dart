@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/message_api.dart';
 import '../../core/socket_service.dart';
@@ -42,6 +43,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _checkingChatAccess = true;
   String? _currentUserId;
   String? _errorMessage;
+  final ImagePicker _picker = ImagePicker();
 
   bool get _isBlocked => _iBlockedThem || _theyBlockedMe;
   
@@ -103,7 +105,10 @@ class _ChatScreenState extends State<ChatScreen> {
       
       if (mounted) {
         setState(() {
-          _canChat = response['approved'] == true;
+          // Support both legacy `approved` and newer `canChat` booleans
+          final approved = response['approved'] == true;
+          final canChat = response['canChat'] == true;
+          _canChat = approved || canChat;
           _checkingChatAccess = false;
         });
       }
@@ -202,9 +207,119 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _pickAndSendImage() async {
+    if (_isSending || !_canChat || _isBlocked) return;
+
+    final XFile? picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+      maxWidth: 1600,
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      _isSending = true;
+    });
+
+    // Optimistic placeholder
+    final tempMessage = {
+      'message': picked.path,
+      'sender': 'current',
+      'createdAt': DateTime.now().toIso8601String(),
+      'isSending': true,
+      'messageType': 'image',
+      'isLocalImage': true,
+    };
+    setState(() {
+      _messages.add(tempMessage);
+    });
+    _scrollToBottom();
+
+    try {
+      final response = await _messageApi.sendImage(
+        conversationId: widget.conversationId,
+        image: picked,
+      );
+
+      if (response['success'] == true) {
+        final sentMessage = response['message'] as Map<String, dynamic>;
+        setState(() {
+          final tempIndex = _messages.indexWhere((m) => m['isSending'] == true && m['messageType'] == 'image');
+          if (tempIndex != -1) {
+            _messages.removeAt(tempIndex);
+          }
+          _messages.add(sentMessage);
+          _isSending = false;
+        });
+        _scrollToBottom();
+      } else {
+        setState(() {
+          final tempIndex = _messages.indexWhere((m) => m['isSending'] == true && m['messageType'] == 'image');
+          if (tempIndex != -1) {
+            _messages.removeAt(tempIndex);
+          }
+          _isSending = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Failed to send image'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        final tempIndex = _messages.indexWhere((m) => m['isSending'] == true && m['messageType'] == 'image');
+        if (tempIndex != -1) {
+          _messages.removeAt(tempIndex);
+        }
+        _isSending = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An error occurred while sending image.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _sendMessage() async {
     final message = _controller.text.trim();
     if (message.isEmpty || _isSending || !_canChat || _isBlocked) return;
+
+    // Enforce: user can only send one message in a row until the other user replies.
+    // Find the last real (non-temporary) message.
+    if (_messages.isNotEmpty) {
+      final lastReal = _messages.lastWhere(
+        (m) => m['isSending'] != true,
+        orElse: () => <String, dynamic>{},
+      );
+      if (lastReal.isNotEmpty) {
+        final lastSenderId = lastReal['sender']?['_id'] ??
+            lastReal['senderId'] ??
+            lastReal['sender'];
+        final lastIsMe =
+            lastSenderId != null && lastSenderId.toString() == _currentUserId;
+        if (lastIsMe) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Please wait for a reply before sending another message.',
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
+    }
 
     setState(() {
       _isSending = true;
@@ -597,6 +712,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               final messageText = msg['message'] ?? '';
                               final messageTime = msg['createdAt'];
                               final isSending = msg['isSending'] == true;
+                              final String messageType = (msg['messageType'] as String?) ?? 'text';
                               
                               return Align(
                                 alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -621,15 +737,24 @@ class _ChatScreenState extends State<ChatScreen> {
                                     ),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        messageText,
-                                        style: TextStyle(
-                                          color: isMe ? Colors.white : Colors.black87,
-                                          fontSize: 14,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                      if (messageType == 'image')
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(12),
+                                          child: Image.network(
+                                            messageText,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      else
+                                        Text(
+                                          messageText,
+                                          style: TextStyle(
+                                            color: isMe ? Colors.white : Colors.black87,
+                                            fontSize: 14,
+                                          ),
                                         ),
-                                      ),
                                       if (messageTime != null && !isSending) ...[
                                         const SizedBox(height: 4),
                                         Text(
@@ -787,6 +912,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.photo, color: Colors.black54),
+                      onPressed: _pickAndSendImage,
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _controller,

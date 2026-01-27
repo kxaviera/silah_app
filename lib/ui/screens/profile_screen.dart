@@ -346,6 +346,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Gender',
             userData['gender'] as String? ?? 'N/A',
           ),
+          if (userData['currentStatus'] != null)
+          _buildInfoCard(
+            Icons.favorite_outline,
+            'Current status',
+            userData['currentStatus'] as String? ?? 'N/A',
+          ),
           if (userData['height'] != null)
           _buildInfoCard(
             Icons.height_outlined,
@@ -357,6 +363,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Icons.face_outlined,
             'Complexion',
             userData['complexion'] as String? ?? 'N/A',
+          ),
+          if (userData['physicalStatus'] != null)
+          _buildInfoCard(
+            Icons.accessibility_new_outlined,
+            'Physical status',
+            userData['physicalStatus'] as String? ?? 'N/A',
           ),
           
           const SizedBox(height: 24),

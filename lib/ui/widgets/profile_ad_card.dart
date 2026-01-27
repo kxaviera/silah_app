@@ -125,11 +125,17 @@ class ProfileAdCard extends StatelessWidget {
                       children: [
                         _infoChip(Icons.cake_outlined, '${ad.age} years'),
                         _infoChip(Icons.flag_outlined, ad.country),
+                        if (ad.state != null && ad.state!.isNotEmpty)
+                          _infoChip(Icons.map_outlined, ad.state!),
+                        if (ad.city != null && ad.city!.isNotEmpty)
+                          _infoChip(Icons.location_city_outlined, ad.city!),
                         if (ad.livingCountry != null &&
                             ad.livingCountry!.isNotEmpty &&
                             ad.livingCountry != ad.country)
-                          _infoChip(Icons.flight_takeoff_outlined,
-                              'Living in ${ad.livingCountry}'),
+                          _infoChip(
+                            Icons.flight_takeoff_outlined,
+                            'Living in ${ad.livingCountry}',
+                          ),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -138,9 +144,12 @@ class ProfileAdCard extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         _infoChip(Icons.church_outlined, ad.religion),
+                        if (ad.currentStatus != null &&
+                            ad.currentStatus!.isNotEmpty)
+                          _infoChip(Icons.favorite_outline, ad.currentStatus!),
                         if (ad.height != null)
                           _infoChip(Icons.height_outlined, '${ad.height} cm'),
-                        if (ad.profession != null)
+                        if (ad.profession != null && ad.profession!.isNotEmpty)
                           _infoChip(Icons.work_outline, ad.profession!),
                       ],
                     ),

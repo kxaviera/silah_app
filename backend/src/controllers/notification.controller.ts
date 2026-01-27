@@ -8,9 +8,15 @@ import { AuthRequest } from '../middleware/auth.middleware';
 export const registerToken = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user._id;
-    const { token, deviceType } = req.body;
+    // Support both `token` and `fcmToken` from clients
+    const { token, fcmToken, deviceType } = req.body as {
+      token?: string;
+      fcmToken?: string;
+      deviceType?: string;
+    };
+    const resolvedToken = token || fcmToken;
 
-    if (!token) {
+    if (!resolvedToken) {
       res.status(400).json({
         success: false,
         message: 'FCM token is required.',
@@ -19,12 +25,12 @@ export const registerToken = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     // Remove old token if exists
-    await FCMToken.findOneAndDelete({ token });
+    await FCMToken.findOneAndDelete({ token: resolvedToken });
 
     // Create or update token
     await FCMToken.findOneAndUpdate(
-      { userId, token },
-      { userId, token, deviceType },
+      { userId, token: resolvedToken },
+      { userId, token: resolvedToken, deviceType },
       { upsert: true, new: true }
     );
 

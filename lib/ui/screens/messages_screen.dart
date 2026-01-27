@@ -201,9 +201,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           onRefresh: _loadConversations,
                           child: ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            itemBuilder: (_, i) {
+                          itemBuilder: (_, i) {
                               final c = _filteredConversations[i];
-                              final otherUser = c['otherUser'] ?? {};
+                              // Support both `otherUser` (new API) and `participant` (legacy)
+                              final otherUser = c['otherUser'] ?? c['participant'] ?? {};
                               final userName = otherUser['name'] ?? otherUser['fullName'] ?? 'Unknown';
                               final lastMessage = c['lastMessage'];
                               final preview = lastMessage?['message'] ?? '';

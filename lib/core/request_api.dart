@@ -11,7 +11,9 @@ class RequestApi {
   }) async {
     try {
       final response = await _dio.post('/requests', data: {
+        // Send both keys so it works with old/new backend handlers
         'userId': userId,
+        'toUserId': userId,
         'requestType': requestType,
       });
       return response.data;

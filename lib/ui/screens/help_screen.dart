@@ -14,7 +14,7 @@ class HelpScreen extends StatelessWidget {
       sections: [
         {'heading': 'Updating your profile', 'body': 'You can edit your profile anytime from the Profile tab. Tap your profile, then Edit to update your name, photo, location, profession, religion, and other details.'},
         {'heading': 'Profile visibility', 'body': 'Your profile is shown to others based on search preferences and filters. Boost your profile to go live and increase visibility. Unboosted profiles are not visible to other users.'},
-        {'heading': 'Account settings', 'body': 'Manage your account from the Profile screen. You can update preferences, view boost status, and access Payment & Boost, Boost Activity, and other options from the menu.'},
+        {'heading': 'Account settings', 'body': 'Manage your account from the Profile screen. You can update preferences, view boost status, and access Payment & Boost, Profile Activity, and other options from the menu.'},
       ],
     ),
     (
@@ -24,7 +24,7 @@ class HelpScreen extends StatelessWidget {
       sections: [
         {'heading': 'Boost & Featured posts', 'body': 'Boost your profile to go live and get more responses. Standard and Featured options give your profile greater visibility for a set period. Choose the option that suits you from the Boost banner on the Discover screen.'},
         {'heading': 'Payments', 'body': 'Payments are processed securely. Once a boost or featured post is published and your profile is live, it cannot be refunded. Make sure you have completed your profile before boosting.'},
-        {'heading': 'Billing & invoices', 'body': 'View your payment history and invoices from the Payment & Boost section in the app menu. You can also check Boost Activity to see when your boost started and when it expires.'},
+        {'heading': 'Billing & invoices', 'body': 'View your payment history and invoices from the Payment & Boost section in the app menu. You can also check Profile Activity to see when your boost started and when it expires.'},
       ],
     ),
     (

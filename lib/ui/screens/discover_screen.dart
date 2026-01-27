@@ -4,6 +4,7 @@ import '../../core/app_data.dart';
 import '../../core/profile_api.dart';
 import '../../core/auth_api.dart';
 import '../../core/app_settings.dart';
+import '../../core/notification_service.dart';
 import '../widgets/profile_ad_card.dart';
 import 'payment_screen.dart';
 import 'payment_post_profile_screen.dart';
@@ -47,12 +48,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   bool _isActivatingBoost = false;
   Map<String, dynamic>? _boostStatusData; // Store full boost status
 
+  int _unreadNotifications = 0;
+
   @override
   void initState() {
     super.initState();
     _checkBoostStatus();
     _loadProfiles();
     _fetchUserCity();
+    _loadUnreadNotifications();
     
     // Debounce search
     _searchController.addListener(() {
@@ -62,6 +66,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
         }
       });
     });
+  }
+
+  Future<void> _loadUnreadNotifications() async {
+    try {
+      final counts = await NotificationService.instance.getUnreadCounts();
+      if (!mounted) return;
+      setState(() {
+        _unreadNotifications = counts['notifications'] ?? 0;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _unreadNotifications = 0;
+      });
+    }
   }
 
   Future<void> _fetchUserCity() async {
@@ -179,6 +198,80 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             onSubmitted: (_) => _loadProfiles(refresh: true),
           ),
         ),
+        if (_unreadNotifications > 0) ...[
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.shade200,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active_outlined,
+                      color: Colors.deepOrange,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'You have $_unreadNotifications unread notification${_unreadNotifications > 1 ? 's' : ''}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Stay updated with new messages, requests and profile updates.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/notifications').then((_) {
+                        _loadUnreadNotifications();
+                      });
+                    },
+                    child: const Text(
+                      'Check now',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         // Boost Profile Banner - Show always (different content based on status)
         if (!_isCheckingBoost) ...[
@@ -1412,6 +1505,7 @@ class ProfileAd {
   final String? livingCountry;
   final String? state;
   final String? city;
+  final String? currentStatus;
   final String religion;
   final String role; // 'bride' or 'groom'
   final bool featured;
@@ -1429,6 +1523,7 @@ class ProfileAd {
     this.livingCountry,
     this.state,
     this.city,
+    this.currentStatus,
     required this.religion,
     required this.role,
     this.featured = false,
@@ -1448,6 +1543,7 @@ class ProfileAd {
       livingCountry: map['livingCountry'],
       state: map['state'],
       city: map['city'],
+      currentStatus: map['currentStatus'],
       religion: map['religion'] ?? '',
       role: map['role'] ?? '',
       featured: map['boostType'] == 'featured' || map['featured'] == true,

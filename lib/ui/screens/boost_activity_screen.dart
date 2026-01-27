@@ -103,7 +103,7 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
         backgroundColor: Colors.white,
         appBar: AppBar(
           title: const Text(
-            'Boost Activity',
+            'Profile Activity',
             style: TextStyle(
               color: Colors.black87,
               fontWeight: FontWeight.w600,
@@ -138,12 +138,21 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
 
     final theme = Theme.of(context);
     final isBoostActive = boostStatus == 'Active' && daysLeft > 0;
+
+    // Determine whether current boost is effectively free or paid
+    final settings = AppSettingsService.settings;
+    final isPaymentRequired = AppSettingsService.isPaymentRequired();
+    final planPrice = AppSettingsService.getPrice(
+      boostType.toLowerCase() == 'featured' ? 'featured' : 'standard',
+      role,
+    );
+    final isFreeBoost = !isPaymentRequired || settings.allowFreePosting || planPrice == 0;
     
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text(
-          'Boost Activity',
+          'Profile Activity',
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.w600,
@@ -162,36 +171,23 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Boost Status Card - Enhanced Professional Design
+              // Boost status card - clearer, with free/paid label
               Container(
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: isBoostActive
-                      ? LinearGradient(
-                          colors: [
-                            theme.colorScheme.primary,
-                            theme.colorScheme.primary.withOpacity(0.85),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : LinearGradient(
-                          colors: [
-                            Colors.grey.shade100,
-                            Colors.grey.shade50,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isBoostActive
+                        ? theme.colorScheme.primary.withOpacity(0.4)
+                        : Colors.grey.shade300,
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: isBoostActive
-                          ? theme.colorScheme.primary.withOpacity(0.4)
-                          : Colors.grey.withOpacity(0.15),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                      spreadRadius: 0,
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -199,35 +195,26 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 72,
-                          height: 72,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: isBoostActive
-                                ? Colors.white.withOpacity(0.25)
-                                : Colors.white,
+                                ? theme.colorScheme.primary.withOpacity(0.1)
+                                : Colors.grey.shade100,
                             shape: BoxShape.circle,
-                            border: isBoostActive
-                                ? Border.all(color: Colors.white.withOpacity(0.4), width: 2.5)
-                                : Border.all(color: Colors.grey.shade300, width: 2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: isBoostActive
-                                    ? Colors.white.withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.1),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
                           child: Icon(
-                            isBoostActive ? Icons.check_circle : Icons.timer_off_rounded,
-                            color: isBoostActive ? Colors.white : Colors.grey.shade600,
-                            size: 36,
+                            isBoostActive ? Icons.rocket_launch : Icons.timer_off_rounded,
+                            color: isBoostActive
+                                ? theme.colorScheme.primary
+                                : Colors.grey.shade600,
+                            size: 26,
                           ),
                         ),
-                        const SizedBox(width: 20),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,82 +222,105 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                               Row(
                                 children: [
                                   Text(
-                                    isBoostActive ? 'Profile Live' : 'Profile Inactive',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: isBoostActive ? Colors.white : Colors.black87,
-                                      letterSpacing: 0.3,
+                                    isBoostActive ? 'Profile live' : 'Profile inactive',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black87,
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
+                                  const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
+                                      horizontal: 10,
+                                      vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
                                       color: isBoostActive
-                                          ? Colors.white.withOpacity(0.3)
-                                          : Colors.grey.shade300,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: isBoostActive
-                                          ? Border.all(color: Colors.white.withOpacity(0.4), width: 1)
-                                          : null,
+                                          ? theme.colorScheme.primary.withOpacity(0.08)
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(999),
                                     ),
-                                    child: Text(
-                                      boostType.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: isBoostActive ? Colors.white : Colors.grey.shade700,
-                                        letterSpacing: 1,
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          boostType.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: isBoostActive
+                                                ? theme.colorScheme.primary
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          width: 4,
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isFreeBoost ? 'Free boost' : 'Paid boost',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
                               ),
+                              const SizedBox(height: 6),
+                              Text(
+                                isBoostActive
+                                    ? 'Your profile is currently visible to other members.'
+                                    : 'Boost your profile to make it visible and start receiving requests.',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                  height: 1.4,
+                                ),
+                              ),
                               const SizedBox(height: 10),
-                              if (isBoostActive && boostStartsAt != null && boostExpiresAt != null) ...[
+                              if (boostStartsAt != null && boostExpiresAt != null) ...[
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.calendar_today,
-                                      size: 14,
-                                      color: Colors.white.withOpacity(0.9),
-                                    ),
+                                    const Icon(Icons.calendar_today,
+                                        size: 14, color: Colors.black45),
                                     const SizedBox(width: 6),
                                     Text(
                                       '${_formatDate(boostStartsAt)} - ${_formatDate(boostExpiresAt)}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.white.withOpacity(0.95),
-                                        fontWeight: FontWeight.w500,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.black54,
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                               ],
                               Row(
                                 children: [
                                   Icon(
                                     isBoostActive ? Icons.access_time : Icons.info_outline,
                                     size: 14,
-                                    color: isBoostActive
-                                        ? Colors.white.withOpacity(0.9)
-                                        : Colors.black54,
+                                    color: Colors.black45,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
                                     isBoostActive
                                         ? '$daysLeft ${daysLeft == 1 ? 'day' : 'days'} remaining'
                                         : 'Boost expired or not activated',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isBoostActive
-                                          ? Colors.white.withOpacity(0.9)
-                                          : Colors.black54,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -547,7 +557,7 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
               ),
               const SizedBox(height: 24),
               
-              // Stats Grid - Professional Cards
+              // Stats Grid - implemented metrics only
               Row(
                 children: [
                   Expanded(
@@ -558,32 +568,6 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                       value: totalViews.toString(),
                       color: Colors.blue,
                       gradient: [Colors.blue.shade50, Colors.blue.shade100],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _statCard(
-                      context,
-                      icon: Icons.favorite_outline,
-                      label: 'Likes',
-                      value: totalLikes.toString(),
-                      color: Colors.red,
-                      gradient: [Colors.red.shade50, Colors.red.shade100],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _statCard(
-                      context,
-                      icon: Icons.bookmark_outline,
-                      label: 'Shortlisted',
-                      value: totalShortlisted.toString(),
-                      color: Colors.orange,
-                      gradient: [Colors.orange.shade50, Colors.orange.shade100],
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -665,7 +649,11 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                               ),
                               child: Center(
                                 child: Text(
-                                  (view['name'] as String? ?? 'U')[0].toUpperCase(),
+                                  ((view['viewerName'] as String? ?? 'User')
+                                          .trim()
+                                          .isNotEmpty
+                                      ? (view['viewerName'] as String).trim()[0].toUpperCase()
+                                      : 'U'),
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -680,7 +668,7 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    view['name'] as String? ?? 'Unknown',
+                                    (view['viewerName'] as String? ?? 'Unknown'),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 15,
@@ -689,7 +677,7 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    view['time'] as String? ?? 'Recently',
+                                    _formatViewTime(view['viewedAt']),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.black54,
@@ -801,5 +789,27 @@ class _BoostActivityScreenState extends State<BoostActivityScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${date.day} ${months[date.month - 1]}, ${date.year}';
+  }
+
+  String _formatViewTime(dynamic dateTime) {
+    DateTime dt;
+    if (dateTime is String) {
+      dt = DateTime.parse(dateTime);
+    } else if (dateTime is DateTime) {
+      dt = dateTime;
+    } else {
+      return 'Recently';
+    }
+
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays > 0) {
+      return '${diff.inDays}d ago';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours}h ago';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes}m ago';
+    }
+    return 'Just now';
   }
 }

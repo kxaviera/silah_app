@@ -4,8 +4,10 @@ import '../../core/profile_api.dart';
 import '../../core/request_api.dart';
 import '../../core/auth_api.dart';
 import '../../core/api_client.dart';
+import '../../core/message_api.dart';
 import '../../utils/boost_dialog.dart';
 import 'discover_screen.dart' show ProfileAd;
+import 'chat_screen.dart';
 
 class AdDetailScreen extends StatefulWidget {
   final String? userId;
@@ -20,6 +22,7 @@ class AdDetailScreen extends StatefulWidget {
 class _AdDetailScreenState extends State<AdDetailScreen> {
   final _profileApi = ProfileApi();
   final _requestApi = RequestApi();
+  final _messageApi = MessageApi();
   
   Map<String, dynamic>? _profile;
   bool _isLoading = false;
@@ -218,6 +221,137 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
           _isRequesting = false;
         });
       }
+    }
+  }
+  
+  /// Start a chat from the profile screen.
+  ///
+  /// User can send a single, polite first message using one of the suggested
+  /// templates. Further messages are handled by `ChatScreen`, which enforces
+  /// the "wait for reply before sending another message" rule.
+  Future<void> _startChat() async {
+    if (widget.userId == null) return;
+
+    // Only boosted members can start chats (backend also enforces this).
+    if (!_isCurrentUserBoosted) {
+      await showBoostRequiredDialog(
+        context,
+        onBoosted: () {
+          setState(() => _isCurrentUserBoosted = true);
+        },
+      );
+      return;
+    }
+
+    final ad = _ad;
+    if (ad == null) return;
+
+    // Quick polite templates for the very first message
+    const templates = [
+      'Hi, I found your profile interesting. Can we connect?',
+      'Hello, I liked your profile on Silah. Would you like to talk?',
+      'Assalamu Alaikum, I viewed your profile on Silah. Can we discuss further?',
+    ];
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Start a conversation',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Choose a polite first message to send.',
+                  style: TextStyle(fontSize: 13, color: Colors.black54),
+                ),
+                const SizedBox(height: 16),
+                ...templates.map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                      leading: const Icon(Icons.chat_bubble_outline),
+                      title: Text(
+                        t,
+                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      ),
+                      onTap: () => Navigator.pop(ctx, t),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected == null || selected.trim().isEmpty) return;
+
+    try {
+      final response = await _messageApi.sendMessage(
+        receiverId: widget.userId!,
+        message: selected.trim(),
+      );
+
+      if (response['success'] == true) {
+        final msg = response['message'] as Map<String, dynamic>?;
+        final convId = msg?['conversationId']?.toString();
+
+        if (convId == null || !mounted) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              conversationId: convId,
+              otherUserId: widget.userId!,
+              name: ad.name,
+            ),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response['message'] as String? ??
+                  'Failed to start chat. Please try again.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting chat: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
   
@@ -674,7 +808,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'Contact details will be shared only after approval.',
+                          'Contact details will be shared only after approval. You can also start a polite chat.',
                           style: TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                       ),
@@ -682,28 +816,49 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isRequesting ? null : _handleRequestContact,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isRequesting ? null : _handleRequestContact,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: _isRequesting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.phone, size: 20),
+                        label: const Text(
+                          'Request contact',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
-                    icon: _isRequesting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.phone, size: 20),
-                    label: const Text(
-                      'Request contact',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _startChat,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: theme.colorScheme.primary),
+                        ),
+                        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                        label: const Text(
+                          'Chat',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ] else ...[

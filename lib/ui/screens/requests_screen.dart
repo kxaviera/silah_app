@@ -229,9 +229,13 @@ class _ReceivedTabState extends State<_ReceivedTab> {
           else
             ..._received.map((r) {
               final requestId = r['_id'] ?? r['id'] ?? '';
-              final userId = r['from']?['_id'] ?? r['from']?['id'] ?? '';
-              final userName = r['from']?['name'] ?? r['from']?['fullName'] ?? 'Unknown';
-              final requestType = r['requestType'] ?? 'Mobile & photos';
+              final from = r['fromUserId'] ?? r['from'];
+              final userId = from?['_id'] ?? from?['id'] ?? '';
+              final userName = from?['fullName'] ??
+                  from?['name'] ??
+                  'Unknown';
+              final rawType = (r['requestType'] as String?) ?? 'both';
+              final requestType = _formatRequestType(rawType);
               final createdAt = r['createdAt'] ?? DateTime.now();
               final isNew = r['status'] == 'pending' && 
                            DateTime.now().difference(DateTime.parse(createdAt.toString())).inDays < 1;
@@ -578,9 +582,13 @@ class _SentTabState extends State<_SentTab> {
             )
           else
             ..._sent.map((r) {
-              final userId = r['to']?['_id'] ?? r['to']?['id'] ?? '';
-              final userName = r['to']?['name'] ?? r['to']?['fullName'] ?? 'Unknown';
-              final requestType = r['requestType'] ?? 'Mobile & photos';
+              final to = r['toUserId'] ?? r['to'];
+              final userId = to?['_id'] ?? to?['id'] ?? '';
+              final userName = to?['fullName'] ??
+                  to?['name'] ??
+                  'Unknown';
+              final rawType = (r['requestType'] as String?) ?? 'both';
+              final requestType = _formatRequestType(rawType);
               final status = r['status'] ?? 'pending';
               final createdAt = r['createdAt'] ?? DateTime.now();
               
@@ -727,6 +735,30 @@ class _SentTabState extends State<_SentTab> {
         ),
       ),
     );
+  }
+
+  String _formatRequestType(String code) {
+    switch (code) {
+      case 'mobile':
+        return 'Mobile number';
+      case 'photos':
+        return 'Photos';
+      case 'both':
+      default:
+        return 'Mobile number & photos';
+    }
+  }
+}
+
+String _formatRequestType(String code) {
+  switch (code) {
+    case 'mobile':
+      return 'Mobile number';
+    case 'photos':
+      return 'Photos';
+    case 'both':
+    default:
+      return 'Mobile number & photos';
   }
 }
 

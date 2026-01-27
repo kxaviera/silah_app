@@ -8,9 +8,15 @@ import { AuthRequest } from '../middleware/auth.middleware';
 export const sendRequest = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const fromUserId = req.user._id;
-    const { toUserId, requestType } = req.body;
+    // Support both `toUserId` and legacy `userId` from mobile app
+    const { toUserId, userId, requestType } = req.body as {
+      toUserId?: string;
+      userId?: string;
+      requestType?: string;
+    };
+    const targetUserId = toUserId || userId;
 
-    if (!toUserId || !requestType) {
+    if (!targetUserId || !requestType) {
       res.status(400).json({
         success: false,
         message: 'User ID and request type are required.',
@@ -58,7 +64,7 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
     }
 
     // Check if target user is verified (only verified users can receive requests)
-    const targetUser = await User.findById(toUserId);
+    const targetUser = await User.findById(targetUserId);
     if (!targetUser || !targetUser.isVerified) {
       res.status(403).json({
         success: false,
@@ -70,7 +76,7 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
     // Check if request already exists
     const existingRequest = await ContactRequest.findOne({
       fromUserId,
-      toUserId,
+      toUserId: targetUserId,
       status: 'pending',
     });
 
@@ -93,7 +99,7 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
     // Create notification for recipient
     const fromUser = await User.findById(fromUserId).select('fullName');
     await Notification.create({
-      userId: toUserId,
+      userId: targetUserId,
       type: 'new_request',
       title: 'New Contact Request',
       message: `${fromUser?.fullName || 'Someone'} sent you a contact request.`,
@@ -256,7 +262,7 @@ export const checkRequestStatus = async (req: AuthRequest, res: Response): Promi
     const { userId: otherUserId } = req.params;
     const currentUserId = req.user._id;
 
-    // Check if there's an accepted request between users
+    // Check if there's an accepted contact request between users (for sharing mobile/photos)
     const request = await ContactRequest.findOne({
       $or: [
         { fromUserId: currentUserId, toUserId: otherUserId },
@@ -265,9 +271,26 @@ export const checkRequestStatus = async (req: AuthRequest, res: Response): Promi
       status: 'accepted',
     });
 
+    // Chat permission: allow boosted & verified users to chat even if contact
+    // details (mobile/photos) have not been shared yet.
+    const currentUser = await User.findById(currentUserId).select(
+      'isVerified boostStatus boostExpiresAt'
+    );
+    let canChat = false;
+    if (currentUser) {
+      const isBoostActive =
+        currentUser.boostStatus === 'active' &&
+        currentUser.boostExpiresAt &&
+        new Date(currentUser.boostExpiresAt) > new Date();
+      canChat = currentUser.isVerified && !!isBoostActive;
+    }
+
     res.json({
       success: true,
-      canChat: !!request,
+      // Legacy field: true only when contact request has been accepted
+      approved: !!request,
+      // New explicit flag: whether user is allowed to chat
+      canChat,
       requestStatus: request ? 'accepted' : 'none',
     });
   } catch (error: any) {
