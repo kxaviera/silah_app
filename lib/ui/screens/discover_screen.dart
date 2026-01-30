@@ -9,6 +9,7 @@ import '../widgets/profile_ad_card.dart';
 import 'payment_screen.dart';
 import 'payment_post_profile_screen.dart';
 import 'boost_activity_screen.dart';
+import 'notifications_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   final String role; // 'bride' or 'groom'
@@ -255,7 +256,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   const SizedBox(width: 8),
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamed(context, '/notifications').then((_) {
+                      Navigator.pushNamed(context, NotificationsScreen.routeName).then((_) {
                         _loadUnreadNotifications();
                       });
                     },

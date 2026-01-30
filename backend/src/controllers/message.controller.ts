@@ -2,7 +2,10 @@ import { Response } from 'express';
 import { Conversation } from '../models/Conversation.model';
 import { Message } from '../models/Message.model';
 import { User } from '../models/User.model';
+import { Notification } from '../models/Notification.model';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { io } from '../server';
+import { sendPushToUser } from '../services/fcm.service';
 
 // Get conversations
 export const getConversations = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -263,6 +266,34 @@ export const sendMessage = async (req: AuthRequest, res: Response): Promise<void
 
     const populatedMessage = await Message.findById(newMessage._id)
       .populate('senderId', 'fullName profilePhoto');
+
+    // Emit socket event for real-time delivery to all clients in conversation
+    if (populatedMessage && convId) {
+      const messageObj = typeof (populatedMessage as any).toObject === 'function'
+        ? (populatedMessage as any).toObject()
+        : populatedMessage;
+      io.to(`conversation:${convId}`).emit('new:message', {
+        ...(messageObj && typeof messageObj === 'object' ? messageObj : {}),
+        conversationId: convId.toString(),
+      });
+    }
+
+    // In-app notification + FCM push for receiver
+    const senderName = (populatedMessage?.senderId as any)?.fullName || 'Someone';
+    const preview = finalType === 'text' ? (message.slice(0, 80) + (message.length > 80 ? '...' : '')) : 'Sent a photo';
+    await Notification.create({
+      userId: receiverId,
+      type: 'new_message',
+      title: 'New message',
+      message: `${senderName}: ${preview}`,
+      relatedUserId: senderId,
+      relatedConversationId: convId,
+    });
+    sendPushToUser(receiverId, {
+      title: 'New message',
+      body: `${senderName}: ${preview}`,
+      data: { type: 'new_message', conversationId: convId.toString() },
+    }).catch(() => {});
 
     res.status(201).json({
       success: true,

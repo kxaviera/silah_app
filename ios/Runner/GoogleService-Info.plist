@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1059546373368-1jb0c352qmkmrvbrfthqo0i3cu9iehrv.apps.googleusercontent.com</string>
+	<string>1059546373368-p1aaugmntr9q656u1j50fhg37hu2c204.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1059546373368-1jb0c352qmkmrvbrfthqo0i3cu9iehrv</string>
+	<string>com.googleusercontent.apps.1059546373368-p1aaugmntr9q656u1j50fhg37hu2c204</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>1059546373368-iemuo1p523is57as16m1544rnd924905.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.silah.silah</string>
+	<string>com.silah.app</string>
 	<key>PROJECT_ID</key>
 	<string>silah-app-e0bb8</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1059546373368:ios:5a64277058de33f88faf0d</string>
+	<string>1:1059546373368:ios:ad9e7390b480e6288faf0d</string>
 </dict>
 </plist>

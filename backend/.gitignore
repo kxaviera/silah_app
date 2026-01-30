@@ -3,3 +3,6 @@ dist/
 .env
 *.log
 .DS_Store
+# Firebase service account key - never commit
+firebase-service-account.json
+*-service-account*.json

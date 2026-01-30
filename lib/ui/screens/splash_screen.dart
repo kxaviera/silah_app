@@ -145,7 +145,7 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 12),
-            Text(
+            //Text(
               "India's 1st classified matrimonial platform",
               style: TextStyle(
                 fontSize: 16,

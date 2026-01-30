@@ -38,6 +38,13 @@ The `.env` file has been created in the Backend directory with all required envi
 - `TWILIO_AUTH_TOKEN` - Twilio auth token
 - `TWILIO_PHONE_NUMBER` - Twilio phone number
 
+### Firebase (FCM Push Notifications)
+- **Option A:** `GOOGLE_APPLICATION_CREDENTIALS` - Path to Firebase service account JSON file (e.g. `./firebase-service-account.json`)
+- **Option B:** Env-only (no file):
+  - `FIREBASE_PROJECT_ID` - Firebase project ID (e.g. `silah-app-e0bb8`)
+  - `FIREBASE_CLIENT_EMAIL` - Service account client email from Firebase
+  - `FIREBASE_PRIVATE_KEY` - Service account private key (use `\n` for newlines in the value)
+
 ### File Upload (Choose one)
 **Cloudinary:**
 - `CLOUDINARY_CLOUD_NAME`

@@ -3,6 +3,7 @@ import { ContactRequest } from '../models/ContactRequest.model';
 import { User } from '../models/User.model';
 import { Notification } from '../models/Notification.model';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { sendPushToUser } from '../services/fcm.service';
 
 // Send contact request
 export const sendRequest = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -98,14 +99,20 @@ export const sendRequest = async (req: AuthRequest, res: Response): Promise<void
 
     // Create notification for recipient
     const fromUser = await User.findById(fromUserId).select('fullName');
+    const notifMessage = `${fromUser?.fullName || 'Someone'} sent you a contact request.`;
     await Notification.create({
       userId: targetUserId,
       type: 'new_request',
       title: 'New Contact Request',
-      message: `${fromUser?.fullName || 'Someone'} sent you a contact request.`,
+      message: notifMessage,
       relatedUserId: fromUserId,
       relatedRequestId: request._id,
     });
+    sendPushToUser(targetUserId, {
+      title: 'New Contact Request',
+      body: notifMessage,
+      data: { type: 'new_request', requestId: request._id.toString() },
+    }).catch(() => {});
 
     res.status(201).json({
       success: true,
@@ -187,14 +194,20 @@ export const acceptRequest = async (req: AuthRequest, res: Response): Promise<vo
 
     // Create notification for sender
     const toUser = await User.findById(userId).select('fullName');
+    const notifMessage = `${toUser?.fullName || 'Someone'} accepted your contact request.`;
     await Notification.create({
       userId: request.fromUserId,
       type: 'request_accepted',
       title: 'Request Accepted',
-      message: `${toUser?.fullName || 'Someone'} accepted your contact request.`,
+      message: notifMessage,
       relatedUserId: userId,
       relatedRequestId: request._id,
     });
+    sendPushToUser(request.fromUserId, {
+      title: 'Request Accepted',
+      body: notifMessage,
+      data: { type: 'request_accepted', requestId: request._id.toString() },
+    }).catch(() => {});
 
     res.json({
       success: true,
@@ -234,14 +247,20 @@ export const rejectRequest = async (req: AuthRequest, res: Response): Promise<vo
 
     // Create notification for sender
     const toUser = await User.findById(userId).select('fullName');
+    const notifMessage = `${toUser?.fullName || 'Someone'} rejected your contact request.`;
     await Notification.create({
       userId: request.fromUserId,
       type: 'request_rejected',
       title: 'Request Rejected',
-      message: `${toUser?.fullName || 'Someone'} rejected your contact request.`,
+      message: notifMessage,
       relatedUserId: userId,
       relatedRequestId: request._id,
     });
+    sendPushToUser(request.fromUserId, {
+      title: 'Request Rejected',
+      body: notifMessage,
+      data: { type: 'request_rejected', requestId: request._id.toString() },
+    }).catch(() => {});
 
     res.json({
       success: true,

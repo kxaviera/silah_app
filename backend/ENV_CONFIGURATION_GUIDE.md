@@ -163,7 +163,43 @@ TWILIO_PHONE_NUMBER=+1234567890  # Format: +countrycode+number
 
 ---
 
-### Step 8: File Upload (Choose One)
+### Step 8: Firebase (FCM Push Notifications) – Optional
+
+Used by the backend to send push notifications to the mobile app (e.g. new message, contact request).
+
+**Option A: Service account JSON file (recommended)**
+
+1. Open [Firebase Console](https://console.firebase.google.com) → your project (e.g. **silah-app-e0bb8**).
+2. Project settings (gear) → **Service accounts**.
+3. Click **Generate new private key**.
+4. Save the JSON file on the server (e.g. `backend/firebase-service-account.json`).
+5. **Do not commit this file** (add to `.gitignore`).
+
+```env
+# Path to the service account JSON (relative to backend root or absolute)
+GOOGLE_APPLICATION_CREDENTIALS=./firebase-service-account.json
+```
+
+**Option B: Env vars only (no file)**
+
+If you prefer not to keep a JSON file on the server, use the same service account but set:
+
+```env
+FIREBASE_PROJECT_ID=silah-app-e0bb8
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@silah-app-e0bb8.iam.gserviceaccount.com
+# Private key from the JSON (paste as one line; keep \n for newlines)
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_KEY_HERE\n-----END PRIVATE KEY-----\n"
+```
+
+**Notes:**
+
+- `FIREBASE_PROJECT_ID` should match your Firebase project (e.g. `silah-app-e0bb8`).
+- For Option B, the private key must be the full key with `\n` for newlines (no real line breaks in the env value).
+- If none of these are set, the backend still runs; FCM token registration works, but **sending** push notifications will be disabled until Firebase Admin is configured.
+
+---
+
+### Step 9: File Upload (Choose One)
 
 #### Option A: Cloudinary (Recommended - Easy Setup)
 
@@ -197,7 +233,7 @@ AWS_REGION=us-east-1
 
 ---
 
-### Step 9: Company Details (For Invoices)
+### Step 10: Company Details (For Invoices)
 
 Update with your actual company information:
 
@@ -211,7 +247,7 @@ COMPANY_ADDRESS=123 Main Street, City, State, Country - 123456  # Your address
 
 ---
 
-### Step 10: Socket.io Configuration
+### Step 11: Socket.io Configuration
 
 **For Local Development:**
 ```env
@@ -267,6 +303,14 @@ SENDGRID_FROM_EMAIL=noreply@silah.com
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=+1234567890
+
+# Firebase (FCM Push Notifications) - Optional
+# Option A: Path to service account JSON file (recommended)
+GOOGLE_APPLICATION_CREDENTIALS=./firebase-service-account.json
+# Option B: Or use env vars (set FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)
+# FIREBASE_PROJECT_ID=silah-app-e0bb8
+# FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@silah-app-e0bb8.iam.gserviceaccount.com
+# FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 # File Upload Configuration - Choose One
 # Option 1: Cloudinary

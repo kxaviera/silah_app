@@ -120,6 +120,7 @@ io.on('connection', (socket) => {
   // Handle typing indicators
   socket.on('typing:start', (data: { conversationId: string; userId: string }) => {
     socket.to(`conversation:${data.conversationId}`).emit('typing:indicator', {
+      conversationId: data.conversationId,
       userId: data.userId,
       isTyping: true,
     });
@@ -127,6 +128,7 @@ io.on('connection', (socket) => {
 
   socket.on('typing:stop', (data: { conversationId: string; userId: string }) => {
     socket.to(`conversation:${data.conversationId}`).emit('typing:indicator', {
+      conversationId: data.conversationId,
       userId: data.userId,
       isTyping: false,
     });
